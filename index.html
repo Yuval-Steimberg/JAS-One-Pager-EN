@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Just A Second | Objects for Impact</title>
-  <meta name="description" content="Circular design as a new norm in Israel. From waste to life. From the street to home. 12,000+ items rescued, 480 tons saved." />
+  <meta name="description" content="Circular design as a new norm in Israel. From waste to life. From the street to home. 480 tons saved." />
   <meta property="og:title" content="Just A Second | Objects for Impact" />
   <meta property="og:description" content="Israel's first venture for reuse and upcycling. Upcycling objects. Uplifting lives." />
   <meta property="og:image" content="./hero_new.jpeg" />
@@ -156,11 +156,11 @@
     @media (min-width: 640px) { section { padding: 128px 0; } }
 
     .section-label {
-      font-size: 11px;
-      letter-spacing: 0.4em;
+      font-size: 14px;
+      letter-spacing: 0.35em;
       text-transform: uppercase;
       color: var(--orange);
-      font-weight: 500;
+      font-weight: 600;
       margin-bottom: 12px;
       text-align: center;
     }
@@ -263,6 +263,23 @@
     /* ═══ SERVICES ═══ */
     .services { background: var(--white); }
     .services .section-title { color: var(--green); }
+    .key-messages {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: -24px auto 48px;
+      max-width: 860px;
+    }
+    .key-msg {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--orange);
+      padding: 6px 18px;
+      border: 1.5px solid var(--orange);
+      border-radius: 100px;
+      opacity: 0.85;
+    }
     .services-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -421,22 +438,25 @@
       color: var(--cream);
       border-color: rgba(255,252,245,0.3);
     }
-    .partner-bottom {
-      font-size: 0.75rem;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      color: rgba(255,252,245,0.45);
-      background: transparent;
-      border: 1px solid rgba(255,252,245,0.08);
+    .partner-with-sub {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 20px 10px;
       border-radius: 100px;
-      padding: 6px 16px;
-      transition: background 0.25s, color 0.25s, border-color 0.25s;
-      cursor: default;
+      height: auto;
     }
-    .partner-bottom:hover {
-      background: rgba(255,252,245,0.07);
-      color: rgba(255,252,245,0.7);
-      border-color: rgba(255,252,245,0.18);
+    .partner-sub {
+      font-size: 0.6rem;
+      letter-spacing: 0.02em;
+      font-weight: 400;
+      color: rgba(255,252,245,0.45);
+      font-style: normal;
+      white-space: normal;
+      text-align: center;
+      max-width: 200px;
+      line-height: 1.4;
     }
 
     /* ═══ TEAM ═══ */
@@ -643,10 +663,10 @@
   <section class="mission">
     <div class="container">
       <p class="section-label reveal">Who We Are</p>
-      <h2 class="section-title reveal">Israel's First Venture<br /><span>for Reuse and Upcycling</span></h2>
+      <h2 class="section-title reveal">Israel&rsquo;s First Venture<br /><span>for Reuse and Upcycling</span></h2>
       <p class="mission-text reveal">
         Just A Second was founded to create systemic change in the way Israel treats materials and objects.
-        We collect items from streets, urban renewal projects, and businesses — repairing, redesigning, and giving them new life.
+        We collect items from streets, urban renewal projects, and businesses &mdash; repairing, redesigning, and giving them new life.
       </p>
       <p class="mission-text reveal">
         All profits go toward supporting the mental health of combat reserve soldiers.
@@ -660,13 +680,6 @@
       <p class="section-label reveal">Our Impact</p>
       <h2 class="section-title reveal">Numbers That Speak</h2>
       <div class="stats-grid">
-        <div class="stat reveal">
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24"><path d="M7.5 7.5h-.128a.5.5 0 0 0-.479.356l-.94 3.135a.5.5 0 0 0 .15.534l2.44 2.146a.5.5 0 0 0 .546.073L12 12.5" /><path d="M16.5 7.5h.128a.5.5 0 0 1 .479.356l.94 3.135a.5.5 0 0 1-.15.534l-2.44 2.146a.5.5 0 0 1-.546.073L12 12.5" /><path d="M12 2v4.5M12 12.5V22" /><path d="m7 4 5 1 5-1" /></svg>
-          </div>
-          <p class="stat-value" data-count="12000">12,000+</p>
-          <p class="stat-label">items rescued from waste</p>
-        </div>
         <div class="stat reveal">
           <div class="stat-icon">
             <svg viewBox="0 0 24 24"><path d="M12 3c.53 0 1.04.21 1.41.59L17 7.17l3.59-3.58L22 5l-5 5 1.41 1.41L22 15l-3.59 3.59L15 15l-3 3-3-3-3.59 3.59L2 15l3.59-3.59L7 13l1.41-1.41L3 6.59 4.41 5.17 8 8.76l3.59-3.58c.37-.38.88-.59 1.41-.59z" /><path d="M12 22V3" /></svg>
@@ -685,8 +698,8 @@
           <div class="stat-icon">
             <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
           </div>
-          <p class="stat-value">850+</p>
-          <p class="stat-label">active volunteers</p>
+          <p class="stat-value">60+</p>
+          <p class="stat-label">volunteers</p>
         </div>
         <div class="stat reveal">
           <div class="stat-icon">
@@ -713,21 +726,21 @@
       <h2 class="section-title reveal">Proud to Work With</h2>
       <div class="partners-divider reveal"></div>
       <div class="partners-row reveal">
-        <span class="partner-top">Azrieli Group</span>
         <span class="partner-top">Tidhar</span>
-        <span class="partner-top">Carasso</span>
         <span class="partner-top">KaN HaTor</span>
-        <span class="partner-top">Shikun &amp; Binui</span>
-        <span class="partner-top">ICR</span>
-        <span class="partner-top">Narsha</span>
         <span class="partner-top">Bank Hapoalim</span>
-        <span class="partner-top">Bishvil HaMachar</span>
+        <span class="partner-top">Shikun &amp; Binui</span>
       </div>
       <div class="partners-row reveal">
-        <span class="partner-bottom">Gandir Foundation</span>
-        <span class="partner-bottom">Monday</span>
-        <span class="partner-bottom">Bosch</span>
-        <span class="partner-bottom">Ministry of Environmental Protection</span>
+        <span class="partner-top">Carasso</span>
+        <span class="partner-top">Narsha</span>
+        <span class="partner-top">ICR</span>
+        <span class="partner-top">Aviv Malisron</span>
+      </div>
+      <div class="partners-row reveal">
+        <span class="partner-top">Gandir Foundation</span>
+        <span class="partner-top">Bosch</span>
+        <span class="partner-top partner-with-sub">Bishvil HaMachar<small class="partner-sub">Mental health support for combat soldiers dealing with combat experiences</small></span>
       </div>
     </div>
   </section>
@@ -750,7 +763,11 @@
   <section class="services">
     <div class="container">
       <p class="section-label reveal">What We Do</p>
-      <h2 class="section-title reveal">From the Street to Home</h2>
+      <h2 class="section-title reveal">From Waste to Impact</h2>
+      <div class="key-messages reveal">
+        <span class="key-msg">From Waste to Resource</span>
+        <span class="key-msg">Building Reuse &amp; Upcycling Hubs Across Israel</span>
+      </div>
       <div class="services-grid">
         <div class="service reveal">
           <div class="service-icon">
@@ -758,7 +775,7 @@
           </div>
           <div>
             <h3>Urban Renewal</h3>
-            <p>Selective dismantling of apartments in urban renewal projects. Rescuing furniture and architectural elements before demolition.</p>
+            <p>Evacuate &mdash; Dismantle &mdash; Build. Rescuing furniture and architectural elements before demolition &mdash; for reuse and upcycling. Earns developers green building points.</p>
           </div>
         </div>
         <div class="service reveal">
@@ -767,7 +784,7 @@
           </div>
           <div>
             <h3>Street Treasures</h3>
-            <p>Collecting discarded furniture from Tel Aviv streets. Restoring, redesigning, and giving them new life.</p>
+            <p>Transforming the urban household waste collection mechanism &mdash; for reuse and upcycling.</p>
           </div>
         </div>
         <div class="service reveal">
@@ -776,7 +793,7 @@
           </div>
           <div>
             <h3>Malls &amp; Industry</h3>
-            <p>Sustainable clearance solutions for shops and businesses. In partnership with the Azrieli Group.</p>
+            <p>Sustainable clearance solutions for shops and businesses. In partnership with the Azrieli Group. Selective dismantling of closing stores &mdash; for reuse and upcycling.</p>
           </div>
         </div>
         <div class="service reveal">
@@ -785,7 +802,7 @@
           </div>
           <div>
             <h3>JAS Original</h3>
-            <p>A leading design studio — creating new items from discarded products. Led by a product designer alongside reserve soldiers and volunteers.</p>
+            <p>A leading design studio &mdash; creating new items from discarded products. Led by a product designer alongside reserve soldiers and volunteers.</p>
           </div>
         </div>
       </div>
