@@ -5,7 +5,9 @@ import path from "path";
 // Static SPA — builds to /dist, hostable on any static host
 // (GitHub Pages / Netlify / Vercel). No SSR required.
 export default defineConfig({
-  base: "./",
+  // Root base for Vercel (served at "/"). For sub-path hosting (e.g. GitHub
+  // Pages project sites) change this to "./" or "/<repo>/".
+  base: "/",
   server: {
     host: "::",
     port: 8080,

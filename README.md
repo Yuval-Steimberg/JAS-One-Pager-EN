@@ -41,7 +41,8 @@ index.html                  # Vite entry — RTL <html dir="rtl" lang="he">, SEO
 legacy/index.html           # the old English one-pager (kept for reference)
 public/
   images/                   # all photography + logo (drop-in replaceable)
-  videos/hero.webm          # generated scroll-scrub hero video (add hero.mp4 for Safari)
+  videos/hero.webm          # working scroll-scrub hero video (fallback)
+  hero.mp4                   # ← put the Higgsfield cinematic clip here (Safari/iOS)
 src/
   main.tsx · App.tsx        # bootstrap + section composition
   index.css                 # Tailwind layers, RTL base, paper textures, reduced-motion
@@ -56,10 +57,9 @@ src/
     Header.tsx · MobileMenu.tsx · Footer.tsx
     primitives/             # the reusable building blocks (see below)
       SectionWrapper · AnimatedText · ScrollRevealText · ZoomScrollImage
-      InfiniteTicker · TiltCard3D · ParallaxSection · StickyStorySection
-      ScrollScrubHero · Counter
+      InfiniteTicker · TiltCard3D · ParallaxSection · StickyStorySection · Counter
     sections/               # the page sections
-      HeroScrub · Hero(legacy variant) · About · ImpactCards · ProcessTimeline
+      ScrollHero · About · ImpactCards · ProcessTimeline
       GalleryPreview · Mosaic · ExperienceCards · ActivityAreas · StatsSection
       Team · Partners · QuoteBand · LocationSection
       VolunteerDonationSection · ContactSection
@@ -86,8 +86,9 @@ Refreshing on a `#hash` scrolls to that section.
 
 ## Reusable animation primitives
 
-- **ScrollScrubHero** — pinned cinematic hero; scroll scrubs a video's
-  `currentTime`. Poster + multi-source + reduced-motion fallback. See
+- **ScrollHero** (`sections/ScrollHero.tsx`) — pinned cinematic hero; scroll
+  scrubs the hero video's `currentTime` (300vh container, sticky video, rAF lerp
+  smoothing 0.22, 200ms fade-in, reduced-motion fallback). See
   [`docs/SCROLL_SCRUB_HERO.md`](./docs/SCROLL_SCRUB_HERO.md).
 - **ZoomScrollImage** — cinematic scroll-linked zoom (transform-only, no layout shift).
 - **InfiniteTicker** — seamless RTL/LTR marquee; slows on hover; reduced-motion safe.
@@ -131,6 +132,39 @@ Everything lives in **`src/content/site.ts`**:
 - **Replace the source photos with optimized, resized versions** before launch
   (the current JPEGs are large originals) — ideally `.webp`/`.avif` at the sizes
   actually rendered. This is the single biggest perf win.
+
+## Deploy to Vercel
+
+The repo is Vercel-ready (`vercel.json` pins framework `vite`, build `npm run
+build`, output `dist`, with caching headers for hashed assets + video). Vite
+`base` is `/` for root hosting.
+
+**Option A — Dashboard (no CLI):**
+1. Go to **vercel.com → Add New → Project → Import Git Repository**.
+2. Pick `Yuval-Steimberg/JAS-One-Pager-EN` and the branch
+   `claude/jas-website-redesign-7jdo4e` (set it as the production branch, or
+   merge to `main` first).
+3. Vercel auto-detects Vite (settings already match `vercel.json`) → **Deploy**.
+
+**Option B — CLI (local):**
+```bash
+npm i -g vercel
+vercel            # preview deploy
+vercel --prod     # production deploy
+```
+
+> Note: this build session runs in a sandbox with no Vercel credentials, so the
+> actual deploy must be triggered from your account (one click via the dashboard,
+> or `vercel` locally). Everything needed for it is committed.
+
+## The Higgsfield cinematic hero video
+
+The hero scrubs `/public/hero.mp4`. To generate that clip with Higgsfield (per
+the requested flow), the **Higgsfield MCP must be connected** — it was *not*
+available in this session. Connect it, then generate `seedance_2_0`, 16:9, 8s,
+1080p, and save the result to `public/hero.mp4`. The component already references
+it (with `public/videos/hero.webm` as the working fallback). Full guide and the
+exact prompt specs: [`docs/SCROLL_SCRUB_HERO.md`](./docs/SCROLL_SCRUB_HERO.md).
 
 ## Notes on the legacy site → this rebuild
 

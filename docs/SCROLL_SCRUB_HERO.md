@@ -5,10 +5,12 @@
 
 This site ships a production-ready implementation:
 
-- **`src/components/primitives/ScrollScrubHero.tsx`** — the reusable, generic engine.
-- **`src/components/sections/HeroScrub.tsx`** — the Just A Second hero that uses it,
-  with scroll-staged Hebrew overlay copy.
-- **`public/videos/hero.webm`** — a real demo clip generated from the site's photos.
+- **`src/components/sections/ScrollHero.tsx`** — the hero: a 300vh container, a
+  sticky full-viewport `<video>`, a scroll→`currentTime` rAF lerp (smoothing
+  0.22), a 200ms fade-in, the Hebrew overlay copy, and a reduced-motion fallback.
+- **`public/hero.mp4`** — the Higgsfield cinematic clip (Safari/iOS). *Add this.*
+- **`public/videos/hero.webm`** — a working fallback clip generated from the
+  site's photos, so the effect runs even before `hero.mp4` exists.
 
 ---
 
@@ -47,24 +49,25 @@ then crossfades stages with `animate`. It re-renders only at the two boundaries
 
 ## 2. Using the component
 
+It's a single drop-in component (matching the requested spec):
+
 ```tsx
-<ScrollScrubHero
-  id="home"
-  poster="/images/hero.jpg"
-  posterAlt="…"
-  scrollVh={3}                                  // hero is 300vh tall
-  sources={[
-    { src: "/videos/hero.mp4",  type: "video/mp4"  },   // Safari/iOS — list first
-    { src: "/videos/hero.webm", type: "video/webm" },   // Chrome/Firefox/Edge
-  ]}
-  overlay={(progress) => <YourOverlay progress={progress} />}
-/>
+import { ScrollHero } from "@/components/sections/ScrollHero";
+// ...
+<ScrollHero />
 ```
 
-**Tuning**
+The video sources live inside it:
 
-- `scrollVh` — longer = slower, more cinematic scrub (more scroll per second of footage). `2.5`–`4` is a good range.
-- Easing factor `0.12` in `ScrollScrubHero` — lower = silkier but laggier; higher = snappier.
+```tsx
+<source src="/hero.mp4" type="video/mp4" />        {/* Higgsfield clip — Safari/iOS */}
+<source src="/videos/hero.webm" type="video/webm" /> {/* fallback — Chrome/Firefox/Edge */}
+```
+
+**Tuning** (constants at the top of the `useEffect`)
+
+- Container height `h-[300vh]` — longer = slower, more cinematic scrub. `250vh`–`400vh` is a good range.
+- `SMOOTHING = 0.22` — lower = silkier but laggier; higher = snappier.
 - The seek threshold `1/30` ≈ one frame at 30 fps; match it to your video's fps.
 
 ## 3. Producing the video (the part that actually matters)
@@ -101,6 +104,30 @@ Chromium and recording it with `MediaRecorder` (VP8/WebM). Good enough to prove
 the effect live; **for production, replace it with a real `hero.mp4` + `hero.webm`
 encoded as above** (drop them in `public/videos/`). The mp4 `<source>` is already
 wired — adding the file is all that's left, and it removes the dev 404 for it.
+
+### Generating the clip with Higgsfield (the requested flow)
+
+Requires the **Higgsfield MCP** to be connected to your client:
+
+```bash
+claude mcp add --transport http higgsfield https://mcp.higgsfield.ai/mcp
+# then restart Claude Code
+```
+
+Then generate with these specs and save the result to **`public/hero.mp4`**:
+
+- Model: **`seedance_2_0`**
+- Aspect: **16:9**, Duration: **8s**, Resolution: **1080p**
+- Cinematic prompt should include: slow drone / push-in camera, golden-hour
+  lighting (by default), shallow depth of field, anamorphic lens, 24fps film
+  grain, **no people, no text overlays**.
+
+No code change is needed afterward — `ScrollHero` already points its first
+`<source>` at `/hero.mp4`. (Optionally also export a `.webm` and replace the
+fallback for smaller transfers on Chromium/Firefox.)
+
+> In the build session where this site was assembled, the Higgsfield MCP was not
+> connected, so a photo-derived WebM stands in until you add the real `hero.mp4`.
 
 ### Alternative: image-sequence + canvas (the most "Apple-authentic" route)
 Apple's product pages often draw a **numbered JPG sequence** to a canvas instead

@@ -3,7 +3,7 @@ import { TICKER_WORDS } from "@/content/site";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { InfiniteTicker } from "@/components/primitives/InfiniteTicker";
-import { HeroScrub } from "@/components/sections/HeroScrub";
+import { ScrollHero } from "@/components/sections/ScrollHero";
 import { About } from "@/components/sections/About";
 import { ImpactCards } from "@/components/sections/ImpactCards";
 import { ProcessTimeline } from "@/components/sections/ProcessTimeline";
@@ -26,7 +26,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <Header />
       <main id="main">
-        <HeroScrub />
+        <ScrollHero />
 
         {/* Brand keyword rhythm */}
         <div className="bg-cream text-forest">
