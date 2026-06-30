@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { STATS } from "@/data/siteContent";
 import { Counter } from "@/components/Counter";
+import { KineticWord } from "@/components/KineticWord";
 import { fadeUp, staggerContainer, viewportOnce } from "@/lib/animations";
 
 export function StatsSection() {
@@ -13,6 +14,11 @@ export function StatsSection() {
       className="on-dark relative scroll-mt-[72px] overflow-hidden bg-ink-900 py-20 text-ivory sm:py-28"
     >
       <div aria-hidden className="texture-dots absolute inset-0 opacity-60" />
+      <KineticWord
+        text="IMPACT · השפעה"
+        direction="rtl"
+        className="top-1/2 -translate-y-1/2 text-[18vw] text-ivory/[0.05]"
+      />
       <div className="container relative">
         <motion.header
           variants={staggerContainer}

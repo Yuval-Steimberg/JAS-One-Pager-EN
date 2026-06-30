@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { KineticWord } from "@/components/KineticWord";
 import { fadeUp, staggerContainer, viewportOnce } from "@/lib/animations";
 
 /** Emotional pause between sections — the brand's core message. */
@@ -10,12 +11,17 @@ export function QuoteBand() {
       aria-label="המסר שלנו"
       className="texture-paper relative overflow-hidden py-24 sm:py-32"
     >
+      <KineticWord
+        text="SECOND LIFE · חיים שניים"
+        direction="ltr"
+        className="top-1/2 -translate-y-1/2 text-[18vw] text-sage/[0.10]"
+      />
       <motion.blockquote
         variants={staggerContainer}
         initial="hidden"
         whileInView="show"
         viewport={viewportOnce}
-        className="container max-w-3xl text-center"
+        className="container relative max-w-3xl text-center"
       >
         <motion.span
           variants={fadeUp}

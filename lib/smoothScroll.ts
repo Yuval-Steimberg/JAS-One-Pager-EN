@@ -1,18 +1,24 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
+import { getLenis } from "./SmoothScroll";
 
 const HEADER_OFFSET = 80;
 
-/** Smoothly scroll to a section id, accounting for the sticky header. */
+/** Smoothly scroll to a section id, accounting for the sticky header.
+ *  Uses the shared Lenis instance for buttery motion when available. */
 export function scrollToId(id: string) {
   const el = document.getElementById(id);
   if (!el) return;
   const prefersReduced = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;
-  const top =
-    el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
+  const lenis = getLenis();
+  if (lenis && !prefersReduced) {
+    lenis.scrollTo(el, { offset: -HEADER_OFFSET, duration: 1.2 });
+    return;
+  }
+  const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET;
   window.scrollTo({ top, behavior: prefersReduced ? "auto" : "smooth" });
 }
 

@@ -92,3 +92,13 @@ export const scaleInVariant: Variants = {
   hidden: { opacity: 0, scale: 0.85 },
   show: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: EASE } },
 };
+
+/** Cinematic clip-path wipe — image is revealed bottom-to-top while it settles. */
+export const clipReveal: Variants = {
+  hidden: { clipPath: "inset(100% 0% 0% 0%)", scale: 1.06 },
+  show: {
+    clipPath: "inset(0% 0% 0% 0%)",
+    scale: 1,
+    transition: { duration: 1.05, ease: EASE },
+  },
+};

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "lenis/dist/lenis.css";
 import { MotionProvider } from "@/components/MotionProvider";
+import { SmoothScroll } from "@/lib/SmoothScroll";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://justasecond.co.il"),
@@ -74,6 +76,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <SmoothScroll />
         <MotionProvider>{children}</MotionProvider>
       </body>
     </html>

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { GALLERY, PRODUCTS } from "@/data/siteContent";
 import { TiltCard3D } from "@/components/TiltCard3D";
+import { KineticWord } from "@/components/KineticWord";
 import { fadeUp, staggerContainer, viewportOnce } from "@/lib/animations";
 
 export function GalleryPreview() {
@@ -13,6 +14,11 @@ export function GalleryPreview() {
       aria-label={GALLERY.kicker}
       className="texture-paper relative scroll-mt-[72px] overflow-hidden py-20 text-ink sm:py-28 lg:py-32"
     >
+      <KineticWord
+        text="GALLERY · גלריה"
+        direction="rtl"
+        className="top-6 text-[20vw] text-clay/[0.06] sm:top-2"
+      />
       <div className="container relative">
         <div className="mb-14 flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-end">
           <motion.div

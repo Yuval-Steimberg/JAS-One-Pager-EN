@@ -97,9 +97,9 @@ export function ScrollHero() {
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
-      className={cn("relative", reduce ? "h-[100svh]" : "h-[300vh]")}
+      className={cn("relative overflow-hidden", reduce ? "h-[100svh]" : "h-[300vh]")}
     >
-      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center overflow-hidden">
+      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center [overflow:clip]">
         {/* Scrubbed video — paused on mount, driven by scroll */}
         <video
           ref={videoRef}
