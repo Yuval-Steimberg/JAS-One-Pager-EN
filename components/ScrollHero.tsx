@@ -16,17 +16,15 @@ import { cn } from "@/lib/utils";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * Cinematic scroll-scrub hero — space fly-through effect on ALL devices.
+ * Cinematic scroll-scrub hero.
  *
- * MOBILE + DESKTOP: video.currentTime is driven by scroll position.
- * iOS Safari supports currentTime seeking on muted playsInline videos —
- * this is the same technique Apple uses on their product pages.
+ * DESKTOP: section is 300vh; video.currentTime driven by scroll + scale zoom.
+ * MOBILE:  section is 100svh; video autoplays so the camera flies through space
+ *          without any blank scroll buffer below the viewport.
  *
- * KEY CSS RULES:
- * - Section uses [overflow:clip] NOT overflow-hidden (clip ≠ scroll container).
- * - Section is 300vh so there is scroll range to scrub through.
- * - Reduce-motion: collapses to 100svh with no scrub.
- * - No poster attribute — bg-black is the pre-load dark fallback.
+ * iOS Safari requires autoPlay + muted + playsInline to buffer frames;
+ * on desktop we call play().then(pause) to unlock buffering, then hand
+ * control to the rAF scrub loop.
  */
 export function ScrollHero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -39,11 +37,15 @@ export function ScrollHero() {
     target: containerRef,
     offset: ["start start", "end start"],
   });
+
+  // Parallax + fade for the text overlay
   const overlayY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-30%"]);
   const overlayOpacity = useTransform(scrollYProgress, [0.45, 0.72], [1, 0]);
 
+  // Scale the video up as you scroll — "flying into" the space
+  const videoScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.18]);
+
   useEffect(() => {
-    // Entrance: rAF fires first paint, setTimeout(50) is a cross-browser safety net
     const raf = requestAnimationFrame(() => setVisible(true));
     const t = setTimeout(() => setVisible(true), 50);
 
@@ -54,29 +56,53 @@ export function ScrollHero() {
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
-    // Pause immediately so seeking controls the frame (not playback)
-    // Also seek to START_FRAC so the first visible frame shows real space content,
-    // not the pure-black void at t=0.
-    const START_FRAC = 0.06; // skip the first 6% — usually dark empty frames
-    const onMeta = () => {
-      video.pause();
-      const startT = (video.duration || 0) * START_FRAC;
-      try { video.currentTime = startT; } catch {}
-    };
-    if (video.readyState >= 1) {
-      video.pause();
-      const startT = (video.duration || 0) * START_FRAC;
-      try { video.currentTime = startT; } catch {}
-    } else {
-      video.addEventListener("loadedmetadata", onMeta, { once: true });
+    const mobile = window.matchMedia("(max-width: 767px)").matches;
+
+    if (mobile) {
+      // Mobile: autoplay the space journey. Section is 100svh so there is
+      // no extra scroll buffer and therefore no blank ivory gap.
+      video.play().catch(() => {});
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(t);
+        video.pause();
+      };
     }
+
+    // ── Desktop: scroll-scrub ─────────────────────────────────────────────
+    const START_FRAC = 0.06; // skip the first 6 % — usually dark empty frames
+
+    const pause = () => { try { video.pause(); } catch {} };
+    const seekTo = (time: number) => {
+      if ("fastSeek" in video) {
+        try {
+          (video as HTMLVideoElement & { fastSeek(t: number): void }).fastSeek(time);
+          return;
+        } catch {}
+      }
+      try { video.currentTime = time; } catch {}
+    };
+
+    const setupScrub = () => {
+      pause();
+      const startT = (video.duration || 0) * START_FRAC;
+      seekTo(startT);
+    };
+
+    if (video.readyState >= 1) {
+      setupScrub();
+    } else {
+      video.addEventListener("loadedmetadata", setupScrub, { once: true });
+    }
+
+    // Unlock buffering (iOS + Chrome Android need a play attempt)
+    video.play().then(pause).catch(() => {});
 
     let scrubRaf = 0;
     let displayed = (video.duration || 0) * START_FRAC;
     let seeking = false;
-    const SMOOTHING = 0.15; // lower = smoother on mobile
+    const SMOOTHING = 0.15;
 
-    // Scroll 0→100% maps to video START_FRAC→100%, skipping the black intro
     const computeTarget = () => {
       const rect = container.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
@@ -85,16 +111,7 @@ export function ScrollHero() {
       return (START_FRAC + progress * (1 - START_FRAC)) * (video.duration || 0);
     };
 
-    const seek = (time: number) => {
-      // fastSeek() is less precise but hardware-accelerated on iOS Safari
-      if ("fastSeek" in video) {
-        try { (video as HTMLVideoElement & { fastSeek(t: number): void }).fastSeek(time); return; } catch {}
-      }
-      try { video.currentTime = time; } catch {}
-    };
-
     let targetTime = computeTarget();
-
     const onSeeked = () => { seeking = false; };
     const onScroll = () => { targetTime = computeTarget(); };
     const onResize = () => { targetTime = computeTarget(); };
@@ -108,17 +125,16 @@ export function ScrollHero() {
       displayed += (targetTime - displayed) * SMOOTHING;
       if (!seeking && Math.abs(displayed - video.currentTime) > 1 / 30) {
         seeking = true;
-        seek(displayed);
+        seekTo(displayed);
       }
     };
-
     scrubRaf = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
       cancelAnimationFrame(scrubRaf);
-      video.removeEventListener("loadedmetadata", onMeta);
+      video.removeEventListener("loadedmetadata", setupScrub);
       video.removeEventListener("seeked", onSeeked);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
@@ -132,7 +148,8 @@ export function ScrollHero() {
       aria-label="ברוכים הבאים"
       className={cn(
         "relative [overflow:clip]",
-        reduce ? "h-[100svh]" : "h-[180vh] md:h-[300vh]"
+        // Mobile: 100svh = no blank gap. Desktop: 300vh for scroll range.
+        reduce ? "h-[100svh]" : "h-[100svh] md:h-[300vh]"
       )}
     >
       {/* Deep-space gradient: cinematic even before the video loads */}
@@ -141,23 +158,28 @@ export function ScrollHero() {
         style={{ background: "radial-gradient(ellipse at 50% 20%, #0c0524 0%, #040112 50%, #000000 100%)" }}
       >
 
-        {/* ── Space video — currentTime scrubbed by scroll ── */}
-        <video
-          ref={videoRef}
-          muted
-          playsInline
-          autoPlay
-          preload="auto"
-          aria-hidden="true"
-          onPlay={(e) => { e.currentTarget.pause(); }}
-          className={cn(
-            "absolute inset-0 h-full w-full object-cover transition-opacity duration-1000",
-            visible ? "opacity-100" : "opacity-0"
-          )}
+        {/* ── Space video ── */}
+        {/* Scale grows with scroll (desktop) to create the "flying into space" sensation */}
+        <motion.div
+          style={{ scale: videoScale }}
+          className="absolute inset-0 h-full w-full"
         >
-          <source src="/hero.mp4" type="video/mp4" />
-          <source src="/videos/hero.webm" type="video/webm" />
-        </video>
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            autoPlay
+            preload="auto"
+            aria-hidden="true"
+            className={cn(
+              "h-full w-full object-cover transition-opacity duration-1000",
+              visible ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <source src="/hero.mp4" type="video/mp4" />
+            <source src="/videos/hero.webm" type="video/webm" />
+          </video>
+        </motion.div>
 
         {/* Cinema vignette: top+bottom dark, center open for video */}
         <div
