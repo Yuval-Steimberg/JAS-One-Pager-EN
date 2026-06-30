@@ -55,25 +55,34 @@ export function ScrollHero() {
     }
 
     // Pause immediately so seeking controls the frame (not playback)
-    const onMeta = () => { video.pause(); };
+    // Also seek to START_FRAC so the first visible frame shows real space content,
+    // not the pure-black void at t=0.
+    const START_FRAC = 0.06; // skip the first 6% — usually dark empty frames
+    const onMeta = () => {
+      video.pause();
+      const startT = (video.duration || 0) * START_FRAC;
+      try { video.currentTime = startT; } catch {}
+    };
     if (video.readyState >= 1) {
       video.pause();
+      const startT = (video.duration || 0) * START_FRAC;
+      try { video.currentTime = startT; } catch {}
     } else {
       video.addEventListener("loadedmetadata", onMeta, { once: true });
     }
 
     let scrubRaf = 0;
-    let targetTime = 0;
-    let displayed = 0;
+    let displayed = (video.duration || 0) * START_FRAC;
     let seeking = false;
     const SMOOTHING = 0.15; // lower = smoother on mobile
 
+    // Scroll 0→100% maps to video START_FRAC→100%, skipping the black intro
     const computeTarget = () => {
       const rect = container.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
       const progress =
         scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
-      targetTime = progress * (video.duration || 0);
+      return (START_FRAC + progress * (1 - START_FRAC)) * (video.duration || 0);
     };
 
     const seek = (time: number) => {
@@ -84,10 +93,14 @@ export function ScrollHero() {
       try { video.currentTime = time; } catch {}
     };
 
+    let targetTime = computeTarget();
+
     const onSeeked = () => { seeking = false; };
+    const onScroll = () => { targetTime = computeTarget(); };
+    const onResize = () => { targetTime = computeTarget(); };
     video.addEventListener("seeked", onSeeked);
-    window.addEventListener("scroll", computeTarget, { passive: true });
-    window.addEventListener("resize", computeTarget);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
 
     const tick = () => {
       scrubRaf = requestAnimationFrame(tick);
@@ -99,7 +112,6 @@ export function ScrollHero() {
       }
     };
 
-    computeTarget();
     scrubRaf = requestAnimationFrame(tick);
 
     return () => {
@@ -108,8 +120,8 @@ export function ScrollHero() {
       cancelAnimationFrame(scrubRaf);
       video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("seeked", onSeeked);
-      window.removeEventListener("scroll", computeTarget);
-      window.removeEventListener("resize", computeTarget);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, [reduce]);
 
@@ -123,8 +135,11 @@ export function ScrollHero() {
         reduce ? "h-[100svh]" : "h-[300vh]"
       )}
     >
-      {/* bg-black: dark pre-load fallback, no old-poster flash */}
-      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center bg-black [overflow:clip]">
+      {/* Deep-space gradient: cinematic even before the video loads */}
+      <div
+        className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center [overflow:clip]"
+        style={{ background: "radial-gradient(ellipse at 50% 20%, #0c0524 0%, #040112 50%, #000000 100%)" }}
+      >
 
         {/* ── Space video — currentTime scrubbed by scroll ── */}
         <video
