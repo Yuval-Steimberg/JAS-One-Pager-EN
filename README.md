@@ -41,8 +41,8 @@ index.html                  # Vite entry — RTL <html dir="rtl" lang="he">, SEO
 legacy/index.html           # the old English one-pager (kept for reference)
 public/
   images/                   # all photography + logo (drop-in replaceable)
-  videos/hero.webm          # working scroll-scrub hero video (fallback)
-  hero.mp4                   # ← put the Higgsfield cinematic clip here (Safari/iOS)
+  hero.mp4                   # cinematic scroll-scrub hero video (H.264, all browsers)
+  videos/hero.webm          # smaller fallback clip
 src/
   main.tsx · App.tsx        # bootstrap + section composition
   index.css                 # Tailwind layers, RTL base, paper textures, reduced-motion
@@ -157,14 +157,22 @@ vercel --prod     # production deploy
 > actual deploy must be triggered from your account (one click via the dashboard,
 > or `vercel` locally). Everything needed for it is committed.
 
-## The Higgsfield cinematic hero video
+## The cinematic hero video
 
-The hero scrubs `/public/hero.mp4`. To generate that clip with Higgsfield (per
-the requested flow), the **Higgsfield MCP must be connected** — it was *not*
-available in this session. Connect it, then generate `seedance_2_0`, 16:9, 8s,
-1080p, and save the result to `public/hero.mp4`. The component already references
-it (with `public/videos/hero.webm` as the working fallback). Full guide and the
-exact prompt specs: [`docs/SCROLL_SCRUB_HERO.md`](./docs/SCROLL_SCRUB_HERO.md).
+The hero scrubs **`public/hero.mp4`** (H.264 — plays in every modern browser),
+with `public/videos/hero.webm` as a smaller fallback. To swap it, just replace
+`public/hero.mp4`; no code change.
+
+**Smooth-scrub tip:** scroll scrubbing seeks the playhead, which snaps to the
+nearest keyframe — so a clip with sparse keyframes can feel steppy. If the scrub
+isn't buttery, re-encode with dense keyframes:
+
+```bash
+ffmpeg -i hero.mp4 -an -c:v libx264 -profile:v high -pix_fmt yuv420p \
+  -g 2 -keyint_min 2 -x264-params "scenecut=0" -crf 22 -movflags +faststart hero.opt.mp4
+```
+
+Full background + the Next.js port: [`docs/SCROLL_SCRUB_HERO.md`](./docs/SCROLL_SCRUB_HERO.md).
 
 ## Notes on the legacy site → this rebuild
 
