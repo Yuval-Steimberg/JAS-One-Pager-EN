@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { TEAM } from "@/data/siteContent";
 import { SectionWrapper } from "@/components/SectionWrapper";
+import { KineticWord } from "@/components/KineticWord";
 import { fadeUp, staggerContainer, spring } from "@/lib/animations";
 
 export function Team() {
@@ -13,6 +14,13 @@ export function Team() {
       kicker="הצוות שלנו"
       title="האנשים שמאחורי המשימה"
       intro="צוות קטן ונחוש, עם המון מתנדבים ולוחמי מילואים, שמניע את כל המעגל קדימה."
+      decorative={
+        <KineticWord
+          text="TEAM · צוות"
+          direction="rtl"
+          className="top-8 text-[18vw] text-clay/[0.05]"
+        />
+      }
     >
       <motion.ul
         variants={staggerContainer}

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { MessageCircle, Mail, Instagram, Send } from "lucide-react";
 import { CONTACT, CONTACT_SECTION } from "@/data/siteContent";
 import { SectionWrapper } from "@/components/SectionWrapper";
+import { KineticWord } from "@/components/KineticWord";
 import { fadeUp, staggerContainer, viewportOnce } from "@/lib/animations";
 
 export function ContactSection() {
@@ -25,6 +26,13 @@ export function ContactSection() {
       kicker={CONTACT_SECTION.kicker}
       title={CONTACT_SECTION.title}
       intro={CONTACT_SECTION.lead}
+      decorative={
+        <KineticWord
+          text="CONNECT · קשר"
+          direction="ltr"
+          className="top-8 text-[18vw] text-clay/[0.04]"
+        />
+      }
     >
       <div className="grid gap-10 lg:grid-cols-2">
         {/* Direct channels */}
