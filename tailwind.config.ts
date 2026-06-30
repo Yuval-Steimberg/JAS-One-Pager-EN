@@ -1,7 +1,11 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: [
+    "./app/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./data/**/*.{ts,tsx}",
+  ],
   theme: {
     container: {
       center: true,
@@ -10,31 +14,37 @@ export default {
     },
     extend: {
       colors: {
-        // ── Just A Second brand palette (warm, editorial, recycled-material) ──
-        forest: {
-          DEFAULT: "#333D36", // deep green — primary ink / dark sections
-          900: "#1B2520",
-          700: "#2A332D",
-          500: "#4A574E",
-          300: "#7C887F",
+        // ── Just A Second — warm, bright, natural identity ──
+        // Bases (warm off-white → recycled paper → sand → stone)
+        ivory: "#FBF8F1", // primary background (almost-white, warm)
+        cream: "#F5EEDF", // recycled-paper tone
+        sand: "#EBDCC1", // natural sand
+        stone: "#E2DBCC", // light stone
+        // Accents inspired by recycled materials
+        clay: {
+          DEFAULT: "#BE6A45", // muted terracotta (primary accent)
+          600: "#A1532F",
+          400: "#D2895F",
+          100: "#F1DED1",
         },
-        ember: {
-          DEFAULT: "#E88225", // warm orange accent
-          600: "#D4681F",
-          400: "#F09A4C",
-          100: "#FBE7D3",
+        sage: {
+          DEFAULT: "#8C9A6A", // soft olive / sage (secondary accent)
+          600: "#6F7D4E",
+          300: "#B3BE94",
+          100: "#E6EAD6",
         },
-        cream: {
-          DEFAULT: "#FFFCF5", // warm off-white background
-          200: "#F6F1E7", // paper / cardboard tone
-          300: "#ECE3D2", // soft kraft
+        claywood: "#9A6A4A", // subtle wood/brown — accent ONLY, never a base
+        // Ink & text
+        ink: {
+          DEFAULT: "#26382C", // deep forest green — strong headings / rare dark band
+          900: "#1B2A20", // darkest (footer)
+          700: "#33483A",
         },
-        clay: "#B5805A", // wood / terracotta secondary
-        sand: "#D9C9A8",
+        charcoal: "#3A352D", // body text
       },
       fontFamily: {
         sans: ["Heebo", "system-ui", "sans-serif"],
-        display: ["Frank Ruhl Libre", "Heebo", "serif"], // editorial Hebrew serif
+        display: ["Frank Ruhl Libre", "Heebo", "serif"],
       },
       fontSize: {
         "fluid-hero": "clamp(2.75rem, 9vw, 8rem)",
@@ -42,29 +52,19 @@ export default {
         "fluid-h3": "clamp(1.25rem, 2.5vw, 1.75rem)",
       },
       boxShadow: {
-        soft: "0 2px 8px rgba(51,61,54,0.06), 0 12px 32px rgba(51,61,54,0.08)",
-        lift: "0 18px 50px rgba(51,61,54,0.16)",
-        ember: "0 16px 40px rgba(232,130,37,0.28)",
+        soft: "0 2px 10px rgba(58,53,45,0.05), 0 14px 36px rgba(58,53,45,0.07)",
+        lift: "0 20px 54px rgba(58,53,45,0.14)",
+        clay: "0 16px 40px rgba(190,106,69,0.26)",
       },
-      borderRadius: {
-        xl2: "1.25rem",
-      },
-      transitionTimingFunction: {
-        editorial: "cubic-bezier(0.22, 1, 0.36, 1)",
-      },
+      borderRadius: { xl2: "1.25rem" },
+      transitionTimingFunction: { editorial: "cubic-bezier(0.22, 1, 0.36, 1)" },
       keyframes: {
         "scroll-bounce": {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(8px)" },
         },
-        "ticker-rtl": {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-50%)" },
-        },
       },
-      animation: {
-        "scroll-bounce": "scroll-bounce 2s ease-in-out infinite",
-      },
+      animation: { "scroll-bounce": "scroll-bounce 2s ease-in-out infinite" },
     },
   },
   plugins: [],

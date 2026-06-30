@@ -1,20 +1,19 @@
 {
-  "name": "jas-website",
-  "private": true,
+  "name": "just-a-second",
   "version": "1.0.0",
-  "type": "module",
-  "description": "Just A Second — premium Hebrew RTL website",
+  "private": true,
+  "description": "Just A Second — premium Hebrew RTL website (Next.js)",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:fast": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint ."
+    "dev": "next dev -p 8080",
+    "build": "next build",
+    "start": "next start -p 8080",
+    "lint": "next lint"
   },
   "dependencies": {
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.462.0",
+    "next": "14.2.33",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.6.0"
@@ -23,11 +22,9 @@
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.3",
-    "vite": "^5.4.19"
+    "typescript": "^5.8.3"
   }
 }
