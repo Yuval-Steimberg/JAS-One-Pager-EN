@@ -40,7 +40,7 @@ export function ScrollHero() {
     offset: ["start start", "end start"],
   });
   const overlayY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-30%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.38], [1, 0]);
+  const overlayOpacity = useTransform(scrollYProgress, [0.45, 0.72], [1, 0]);
 
   useEffect(() => {
     // Entrance: rAF fires first paint, setTimeout(50) is a cross-browser safety net
@@ -132,7 +132,7 @@ export function ScrollHero() {
       aria-label="ברוכים הבאים"
       className={cn(
         "relative [overflow:clip]",
-        reduce ? "h-[100svh]" : "h-[300vh]"
+        reduce ? "h-[100svh]" : "h-[180vh] md:h-[300vh]"
       )}
     >
       {/* Deep-space gradient: cinematic even before the video loads */}
@@ -146,8 +146,10 @@ export function ScrollHero() {
           ref={videoRef}
           muted
           playsInline
+          autoPlay
           preload="auto"
           aria-hidden="true"
+          onPlay={(e) => { e.currentTarget.pause(); }}
           className={cn(
             "absolute inset-0 h-full w-full object-cover transition-opacity duration-1000",
             visible ? "opacity-100" : "opacity-0"
