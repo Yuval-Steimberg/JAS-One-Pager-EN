@@ -15,12 +15,15 @@ import { cn } from "@/lib/utils";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * Cinematic scroll-scrub hero — Apple product-page style.
- * - 300vh outer section gives scroll distance.
- * - Sticky inner stage fills the viewport.
- * - Video playhead lerp'd by scroll (smoothing 0.22).
- * - Hero text reveals with masked per-line slide-up on page load.
- * - Overlay content parallaxes upward + fades as you scroll away.
+ * Cinematic scroll-scrub hero — moving through space effect.
+ *
+ * KEY RULES:
+ * - Outer section uses [overflow:clip] NOT overflow-hidden.
+ *   overflow:hidden creates a scroll container → kills position:sticky.
+ *   overflow:clip clips without scroll container → sticky works correctly.
+ * - Sticky inner stage fills viewport (100svh), gets bg-ink-900 so even
+ *   before the video loads the hero is dark (never a blank white flash).
+ * - setVisible uses both rAF AND a 50ms fallback so it fires on any browser.
  */
 export function ScrollHero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -37,16 +40,19 @@ export function ScrollHero() {
   const overlayY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-28%"]);
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
 
-  // ── Scroll-scrub rAF ────────────────────────────────────────────────────────
+  // ── Scroll-scrub + entrance visibility ──────────────────────────────────────
   useEffect(() => {
+    // Trigger entrance animations: rAF + 50ms fallback for safety
+    const raf = requestAnimationFrame(() => setVisible(true));
+    const t = setTimeout(() => setVisible(true), 50);
+
     const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video) return;
+    if (!container || !video || reduce) {
+      return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+    }
 
-    const fadeRaf = requestAnimationFrame(() => setVisible(true));
-    if (reduce) return () => cancelAnimationFrame(fadeRaf);
-
-    let raf = 0;
+    let scrubRaf = 0;
     let targetTime = 0;
     let displayed = 0;
     let seeking = false;
@@ -66,7 +72,7 @@ export function ScrollHero() {
     window.addEventListener("resize", computeTarget);
 
     const tick = () => {
-      raf = requestAnimationFrame(tick);
+      scrubRaf = requestAnimationFrame(tick);
       if (!video.duration) return;
       displayed += (targetTime - displayed) * SMOOTHING;
       if (!seeking && Math.abs(displayed - video.currentTime) > 1 / 30) {
@@ -76,11 +82,12 @@ export function ScrollHero() {
     };
 
     computeTarget();
-    raf = requestAnimationFrame(tick);
+    scrubRaf = requestAnimationFrame(tick);
 
     return () => {
-      cancelAnimationFrame(fadeRaf);
       cancelAnimationFrame(raf);
+      clearTimeout(t);
+      cancelAnimationFrame(scrubRaf);
       window.removeEventListener("scroll", computeTarget);
       window.removeEventListener("resize", computeTarget);
       video.removeEventListener("seeked", onSeeked);
@@ -92,20 +99,24 @@ export function ScrollHero() {
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
-      className={cn("relative overflow-hidden", reduce ? "h-[100svh]" : "h-[300vh]")}
+      /* overflow:clip clips without creating a scroll container — sticky works.
+         overflow:hidden would kill sticky by creating a new scroll context.  */
+      className={cn("relative [overflow:clip]", reduce ? "h-[100svh]" : "h-[300vh]")}
     >
-      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center [overflow:clip]">
-        {/* Scrubbed video */}
+      {/* bg-ink-900 ensures the stage is always dark even before video loads */}
+      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center bg-ink-900 [overflow:clip]">
+
+        {/* Space video — scrubbed by scroll */}
         <video
           ref={videoRef}
           muted
           playsInline
           preload="auto"
-          poster={HERO.image}
+          poster="/images/hero_new.jpeg"
           aria-hidden="true"
           onLoadedMetadata={(e) => e.currentTarget.pause()}
           className={cn(
-            "absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
             visible ? "opacity-100" : "opacity-0"
           )}
         >
@@ -113,44 +124,38 @@ export function ScrollHero() {
           <source src="/videos/hero.webm" type="video/webm" />
         </video>
 
-        {/* Gradient veil */}
+        {/* Deep space veil — lighter in the middle for legibility */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-ink-900/65 via-ink-900/40 to-ink-900/85"
+          className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/25 to-black/80"
         />
-        <div aria-hidden className="texture-dots absolute inset-0 opacity-45" />
+        {/* Subtle starfield texture */}
+        <div aria-hidden className="texture-dots absolute inset-0 opacity-30" />
 
-        {/* ── Overlay copy — parallaxes upward on scroll ── */}
+        {/* ── Overlay — parallaxes up + fades out on scroll ── */}
         <motion.div
           style={{ y: overlayY, opacity: overlayOpacity }}
           className="container relative flex flex-col items-center px-6 text-center"
         >
-          {/* Kicker pill — fades + scales in */}
+          {/* Kicker pill */}
           <motion.p
             initial={{ opacity: 0, scale: 0.88 }}
             animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.88 }}
             transition={{ duration: 0.7, ease: EASE, delay: 0.25 }}
-            className="mx-auto mb-6 inline-block rounded-full border border-ivory/25 bg-white/5 px-4 py-1.5 text-xs font-semibold tracking-wide text-ivory/90 backdrop-blur-sm sm:text-sm"
+            className="mx-auto mb-6 inline-block rounded-full border border-ivory/20 bg-white/5 px-4 py-1.5 text-xs font-semibold tracking-wide text-ivory/85 backdrop-blur-sm sm:text-sm"
           >
             {HERO.kicker}
           </motion.p>
 
           {/* Headline — each line slides up from a clip mask */}
-          <h1 className="text-fluid-hero font-black leading-[0.95] text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+          <h1 className="text-fluid-hero font-black leading-[0.92] text-white drop-shadow-[0_4px_32px_rgba(0,0,0,0.7)]">
             {HERO.titleLines.map((line, i) => (
               <span key={line} className="block overflow-hidden">
                 <motion.span
                   className="block"
                   initial={{ y: "110%", skewY: 5 }}
-                  animate={{
-                    y: visible ? "0%" : "110%",
-                    skewY: visible ? 0 : 5,
-                  }}
-                  transition={{
-                    duration: 1.05,
-                    ease: EASE,
-                    delay: 0.4 + i * 0.14,
-                  }}
+                  animate={{ y: visible ? "0%" : "110%", skewY: visible ? 0 : 5 }}
+                  transition={{ duration: 1.05, ease: EASE, delay: 0.4 + i * 0.14 }}
                 >
                   {line}
                 </motion.span>
@@ -163,7 +168,7 @@ export function ScrollHero() {
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 22 }}
             transition={{ duration: 0.8, ease: EASE, delay: 0.75 }}
-            className="mx-auto mt-6 max-w-2xl text-base font-light text-ivory/85 sm:text-lg md:text-xl"
+            className="mx-auto mt-6 max-w-2xl text-base font-light text-ivory/80 sm:text-lg md:text-xl"
           >
             {HERO.subtitle}
           </motion.p>
@@ -201,7 +206,7 @@ export function ScrollHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: visible ? 1 : 0 }}
           transition={{ duration: 1, delay: 1.4 }}
-          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-ivory/70"
+          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-ivory/60"
         >
           <span className="text-xs tracking-widest">{HERO.scrollCue}</span>
           <motion.span
