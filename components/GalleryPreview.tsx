@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { GALLERY, PRODUCTS } from "@/data/siteContent";
 import { TiltCard3D } from "@/components/TiltCard3D";
 import { KineticWord } from "@/components/KineticWord";
-import { fadeUp, staggerContainer, viewportOnce } from "@/lib/animations";
+import { fadeUp, staggerContainer, viewportOnce, clipReveal } from "@/lib/animations";
 
 export function GalleryPreview() {
   return (
@@ -70,7 +70,7 @@ export function GalleryPreview() {
             <motion.li key={product.name} variants={fadeUp}>
               <TiltCard3D className="h-full" max={9} lift={10}>
                 <article className="flex h-full flex-col overflow-hidden rounded-xl2 bg-ivory text-ink shadow-soft transition-shadow duration-500 hover:shadow-lift">
-                  <div className="relative aspect-[4/5] overflow-hidden">
+                  <motion.div variants={clipReveal} className="relative aspect-[4/5] overflow-hidden">
                     <img
                       src={product.image}
                       alt={product.alt}
@@ -81,7 +81,7 @@ export function GalleryPreview() {
                     <span className="absolute end-3 top-3 rounded-full bg-clay px-3 py-1 text-xs font-semibold text-white shadow-soft">
                       {product.tag}
                     </span>
-                  </div>
+                  </motion.div>
                   <div className="flex flex-1 flex-col p-5">
                     <p className="text-xs font-semibold uppercase tracking-wider text-clay">
                       {product.category}

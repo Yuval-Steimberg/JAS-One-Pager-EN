@@ -2,9 +2,9 @@
 
 import { motion } from "framer-motion";
 import { MOSAIC } from "@/data/siteContent";
-import { imageReveal, staggerContainerFast } from "@/lib/animations";
+import { clipReveal, staggerContainerFast } from "@/lib/animations";
 
-/** Full-bleed photographic rhythm break between sections. */
+/** Full-bleed photographic rhythm break — tiles wipe in bottom-to-top. */
 export function Mosaic() {
   return (
     <section aria-label="גלריית תמונות" className="bg-stone">
@@ -18,7 +18,7 @@ export function Mosaic() {
         {MOSAIC.map((m, i) => (
           <motion.figure
             key={i}
-            variants={imageReveal}
+            variants={clipReveal}
             className="group relative aspect-square overflow-hidden"
           >
             <img

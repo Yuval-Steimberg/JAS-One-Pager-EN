@@ -55,7 +55,8 @@
 
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5
-           text-sm font-semibold transition-colors duration-300
+           text-sm font-semibold transition-all duration-200
+           hover:scale-[1.04] active:scale-[0.97]
            focus-visible:outline-offset-4;
   }
   .btn-primary {

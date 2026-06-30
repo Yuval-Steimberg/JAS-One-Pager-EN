@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { Menu } from "lucide-react";
 import { NAV, CONTACT, asset } from "@/data/siteContent";
@@ -13,12 +13,22 @@ const SECTION_IDS = NAV.map((n) => n.id);
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const active = useActiveSection(SECTION_IDS);
   const handleNav = useSmoothScroll(() => setMenuOpen(false));
 
   const { scrollY } = useScroll();
-  useMotionValueEvent(scrollY, "change", (v) => setScrolled(v > 40));
+  const lastY = useRef(0);
+  useMotionValueEvent(scrollY, "change", (v) => {
+    setScrolled(v > 40);
+    if (v < 80) {
+      setHidden(false);
+    } else {
+      setHidden(v > lastY.current + 4);
+    }
+    lastY.current = v;
+  });
 
   // Lock body scroll while the mobile menu is open + close on Esc.
   useEffect(() => {
@@ -45,8 +55,8 @@ export function Header() {
 
       <motion.header
         initial={{ y: -80 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        animate={{ y: hidden ? -100 : 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
           "fixed inset-x-0 top-0 z-50 transition-colors duration-300",
           scrolled

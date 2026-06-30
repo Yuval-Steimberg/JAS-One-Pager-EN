@@ -5,7 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { ACTIVITIES, CONTACT } from "@/data/siteContent";
 import { SectionWrapper } from "@/components/SectionWrapper";
 import { ZoomScrollImage } from "@/components/ZoomScrollImage";
-import { fadeUp, staggerContainer } from "@/lib/animations";
+import { KineticWord } from "@/components/KineticWord";
+import { fadeUp, staggerContainer, clipReveal } from "@/lib/animations";
 import { cn } from "@/lib/utils";
 
 const FIELDS: { key: keyof (typeof ACTIVITIES)[number]; label: string }[] = [
@@ -23,6 +24,13 @@ export function ActivityAreas() {
       kicker="מרחבי פעולה"
       title={"איפה אנחנו\nיוצרים שינוי"}
       intro="שלושה מרחבי פעולה שבהם אנחנו הופכים פסולת לערך — בקנה מידה עירוני, מסחרי וקהילתי."
+      decorative={
+        <KineticWord
+          text="CHANGE · שינוי"
+          direction="ltr"
+          className="top-10 text-[18vw] text-sage/[0.07]"
+        />
+      }
     >
       <div className="space-y-20 sm:space-y-28">
         {ACTIVITIES.map((activity, i) => {

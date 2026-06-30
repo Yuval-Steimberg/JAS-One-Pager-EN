@@ -3,7 +3,7 @@
 import { forwardRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerContainer, viewportOnce } from "@/lib/animations";
+import { fadeUp, staggerContainer, viewportOnce, EASE } from "@/lib/animations";
 
 type Tone = "cream" | "paper" | "ink" | "clay";
 
@@ -16,22 +16,18 @@ const toneClass: Record<Tone, string> = {
 
 interface SectionWrapperProps {
   id: string;
-  /** Accessible label for the <section> landmark (defaults to title). */
   ariaLabel?: string;
   tone?: Tone;
   className?: string;
   containerClassName?: string;
-  /** Optional centred header rendered with a staggered reveal. */
   kicker?: string;
   title?: ReactNode;
   intro?: ReactNode;
+  /** Rendered at section root (outside container) — use for KineticWord, etc. */
+  decorative?: ReactNode;
   children: ReactNode;
 }
 
-/**
- * Semantic, accessible section landmark with consistent vertical rhythm, brand
- * tones (incl. paper texture) and an optional animated header.
- */
 export const SectionWrapper = forwardRef<HTMLElement, SectionWrapperProps>(
   function SectionWrapper(
     {
@@ -43,23 +39,28 @@ export const SectionWrapper = forwardRef<HTMLElement, SectionWrapperProps>(
       kicker,
       title,
       intro,
+      decorative,
       children,
     },
     ref
   ) {
     const hasHeader = kicker || title || intro;
+    const titleLines =
+      typeof title === "string" ? title.split("\n") : null;
+
     return (
       <section
         id={id}
         ref={ref}
         aria-label={ariaLabel ?? (typeof title === "string" ? title : undefined)}
         className={cn(
-          "scroll-mt-[72px] py-20 sm:py-28 lg:py-32",
+          "relative scroll-mt-[72px] overflow-hidden py-20 sm:py-28 lg:py-32",
           toneClass[tone],
           className
         )}
       >
-        <div className={cn("container", containerClassName)}>
+        {decorative}
+        <div className={cn("container relative", containerClassName)}>
           {hasHeader && (
             <motion.header
               variants={staggerContainer}
@@ -73,14 +74,47 @@ export const SectionWrapper = forwardRef<HTMLElement, SectionWrapperProps>(
                   {kicker}
                 </motion.p>
               )}
-              {title && (
-                <motion.h2
-                  variants={fadeUp}
-                  className="whitespace-pre-line text-fluid-h2 font-bold leading-tight"
+
+              {/* Per-line masked slide-up for string titles */}
+              {titleLines ? (
+                <h2
+                  className="text-fluid-h2 font-bold leading-tight"
+                  aria-label={title as string}
                 >
-                  {title}
-                </motion.h2>
+                  {titleLines.map((line, i) => (
+                    <span key={i} className="block overflow-hidden">
+                      <motion.span
+                        className="block"
+                        variants={{
+                          hidden: { y: "115%", skewY: 3, opacity: 0 },
+                          show: {
+                            y: "0%",
+                            skewY: 0,
+                            opacity: 1,
+                            transition: {
+                              duration: 0.88,
+                              ease: EASE,
+                              delay: 0.08 + i * 0.14,
+                            },
+                          },
+                        }}
+                      >
+                        {line}
+                      </motion.span>
+                    </span>
+                  ))}
+                </h2>
+              ) : (
+                title && (
+                  <motion.h2
+                    variants={fadeUp}
+                    className="whitespace-pre-line text-fluid-h2 font-bold leading-tight"
+                  >
+                    {title}
+                  </motion.h2>
+                )
               )}
+
               {intro && (
                 <motion.p
                   variants={fadeUp}
