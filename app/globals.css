@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --header-h: 72px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--header-h);
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    @apply bg-ivory text-charcoal font-sans antialiased;
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3 {
+    @apply font-display text-ink;
+    text-wrap: balance;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  :focus-visible {
+    outline: 2px solid theme("colors.clay.DEFAULT");
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: theme("colors.clay.DEFAULT");
+    color: #fff;
+  }
+}
+
+@layer components {
+  .section-kicker {
+    @apply text-xs font-semibold uppercase tracking-[0.3em] text-clay;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5
+           text-sm font-semibold transition-all duration-200
+           hover:scale-[1.04] active:scale-[0.97]
+           focus-visible:outline-offset-4;
+  }
+  .btn-primary {
+    @apply btn bg-clay text-white hover:bg-clay-600 shadow-clay;
+  }
+  .btn-outline {
+    @apply btn border border-ink/25 text-ink hover:bg-ink hover:text-ivory;
+  }
+  .btn-ghost {
+    @apply btn text-charcoal/70 hover:text-ink;
+  }
+  /* On dark (deep-forest) bands */
+  .on-dark .btn-outline {
+    @apply border-ivory/30 text-ivory hover:bg-ivory hover:text-ink;
+  }
+  .on-dark .btn-ghost {
+    @apply text-ivory/75 hover:text-ivory;
+  }
+}
+
+@layer utilities {
+  /* faint light dots — for the rare deep-forest band */
+  .texture-dots {
+    background-image: radial-gradient(
+      circle,
+      rgba(251, 248, 241, 0.06) 1px,
+      transparent 1px
+    );
+    background-size: 28px 28px;
+  }
+  /* warm kraft-paper grain for light sections */
+  .texture-paper {
+    background-color: theme("colors.cream");
+    background-image:
+      radial-gradient(circle at 18% 28%, rgba(154, 106, 74, 0.05), transparent 42%),
+      radial-gradient(circle at 82% 72%, rgba(140, 154, 106, 0.08), transparent 46%);
+  }
+  .text-balance { text-wrap: balance; }
+  .whitespace-pre-line { white-space: pre-line; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}

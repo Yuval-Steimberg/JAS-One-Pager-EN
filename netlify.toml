@@ -1,0 +1,10 @@
+# Netlify deploy config for the Next.js app.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Official Next.js runtime (SSR/ISR/static handled automatically).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
