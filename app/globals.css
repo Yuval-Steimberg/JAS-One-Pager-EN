@@ -78,6 +78,20 @@
 }
 
 @layer utilities {
+  /* Animated film grain — overlays on the hero for cinematic texture */
+  .grain-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    animation: grain 0.4s steps(2) infinite;
+  }
+  @keyframes grain {
+    0%   { background-position: 0 0; }
+    25%  { background-position: -35px -75px; }
+    50%  { background-position: -65px -20px; }
+    75%  { background-position: 40px -50px; }
+    100% { background-position: 80px 25px; }
+  }
+
   /* faint light dots — for the rare deep-forest band */
   .texture-dots {
     background-image: radial-gradient(

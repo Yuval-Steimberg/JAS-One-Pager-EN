@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useActiveSection } from "@/lib/useActiveSection";
 import { useSmoothScroll } from "@/lib/smoothScroll";
 import { MobileMenu } from "./MobileMenu";
+import { MagneticWrapper } from "./MagneticWrapper";
 
 const SECTION_IDS = NAV.map((n) => n.id);
 
@@ -127,19 +128,21 @@ export function Header() {
           </ul>
 
           <div className="flex items-center gap-3">
-            <a
-              href={CONTACT.shop}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                "hidden rounded-full px-5 py-2 text-sm font-semibold transition-colors lg:inline-flex",
-                onLight
-                  ? "bg-clay text-white hover:bg-clay-600"
-                  : "bg-ivory text-ink hover:bg-white"
-              )}
-            >
-              לחנות
-            </a>
+            <MagneticWrapper className="hidden lg:inline-flex">
+              <a
+                href={CONTACT.shop}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "rounded-full px-5 py-2 text-sm font-semibold transition-colors",
+                  onLight
+                    ? "bg-clay text-white hover:bg-clay-600"
+                    : "bg-ivory text-ink hover:bg-white"
+                )}
+              >
+                לחנות
+              </a>
+            </MagneticWrapper>
             <button
               type="button"
               aria-label="פתיחת התפריט"
