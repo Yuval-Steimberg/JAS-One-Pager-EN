@@ -10,6 +10,8 @@
   <meta property="og:image" content="./hero_new.jpeg" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" type="image/png" href="./jas-logo.png" />
+  <link rel="apple-touch-icon" href="./jas-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Heebo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -638,6 +640,12 @@
       margin-top: 16px;
     }
   </style>
+  <noscript>
+    <style>
+      /* Without JavaScript the scroll-reveal observer never runs, so show everything. */
+      .reveal { opacity: 1 !important; transform: none !important; }
+    </style>
+  </noscript>
 </head>
 <body>
 
@@ -973,16 +981,24 @@
 
   <!-- ═══ SCROLL REVEAL JS ═══ -->
   <script>
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1, rootMargin: '-40px' });
+    (function () {
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window)) {
+        // Older browsers: reveal everything immediately rather than leaving it hidden.
+        els.forEach(function (el) { el.classList.add('visible'); });
+        return;
+      }
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '-40px' });
 
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+      els.forEach(function (el) { observer.observe(el); });
+    })();
   </script>
 
 </body>
