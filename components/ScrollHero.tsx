@@ -15,15 +15,16 @@ import { cn } from "@/lib/utils";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * Cinematic scroll-scrub hero — moving through space effect.
+ * Cinematic scroll-scrub hero — space fly-through effect.
  *
- * KEY RULES:
+ * Desktop: video.currentTime is driven by scroll position (Apple-style scrub).
+ * Mobile:  video autoplays and loops — no scrub (iOS Safari bans rapid seeking).
+ *
+ * KEY CSS RULES:
  * - Outer section uses [overflow:clip] NOT overflow-hidden.
  *   overflow:hidden creates a scroll container → kills position:sticky.
- *   overflow:clip clips without scroll container → sticky works correctly.
- * - Sticky inner stage fills viewport (100svh), gets bg-ink-900 so even
- *   before the video loads the hero is dark (never a blank white flash).
- * - setVisible uses both rAF AND a 50ms fallback so it fires on any browser.
+ * - Section is 300vh on desktop (scroll range for scrub), 100svh on mobile.
+ * - No poster attribute — bg-black is the pre-load fallback (no furniture flash).
  */
 export function ScrollHero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -32,31 +33,39 @@ export function ScrollHero() {
   const reduce = useReducedMotion();
   const [visible, setVisible] = useState(false);
 
-  // ── Overlay parallax ────────────────────────────────────────────────────────
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
-  const overlayY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-28%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0]);
+  const overlayY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-30%"]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
 
-  // ── Scroll-scrub + entrance visibility ──────────────────────────────────────
   useEffect(() => {
-    // Trigger entrance animations: rAF + 50ms fallback for safety
+    const isMobile = window.innerWidth < 768;
+
+    // Trigger entrance animations immediately
     const raf = requestAnimationFrame(() => setVisible(true));
     const t = setTimeout(() => setVisible(true), 50);
 
-    const container = containerRef.current;
     const video = videoRef.current;
-    if (!container || !video || reduce) {
+    if (!video) return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+
+    if (isMobile || reduce) {
+      // Mobile: autoplay + loop — no scroll scrub
+      video.loop = true;
+      video.play().catch(() => {});
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
+    const container = containerRef.current;
+    if (!container) return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+
+    // Desktop: scroll-scrub
     let scrubRaf = 0;
     let targetTime = 0;
     let displayed = 0;
     let seeking = false;
-    const SMOOTHING = 0.22;
+    const SMOOTHING = 0.18;
 
     const computeTarget = () => {
       const rect = container.getBoundingClientRect();
@@ -66,7 +75,7 @@ export function ScrollHero() {
       targetTime = progress * (video.duration || 0);
     };
 
-    const onSeeked = () => (seeking = false);
+    const onSeeked = () => { seeking = false; };
     video.addEventListener("seeked", onSeeked);
     window.addEventListener("scroll", computeTarget, { passive: true });
     window.addEventListener("resize", computeTarget);
@@ -99,24 +108,31 @@ export function ScrollHero() {
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
-      /* overflow:clip clips without creating a scroll container — sticky works.
-         overflow:hidden would kill sticky by creating a new scroll context.  */
-      className={cn("relative [overflow:clip]", reduce ? "h-[100svh]" : "h-[300vh]")}
+      className={cn(
+        "relative [overflow:clip]",
+        reduce ? "h-[100svh]" : "h-[100svh] md:h-[300vh]"
+      )}
     >
-      {/* bg-ink-900 ensures the stage is always dark even before video loads */}
-      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center bg-ink-900 [overflow:clip]">
+      {/* bg-black: pre-load dark fallback — no poster, no old furniture flash */}
+      <div className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center bg-black [overflow:clip]">
 
-        {/* Space video — scrubbed by scroll */}
+        {/* Space video */}
         <video
           ref={videoRef}
           muted
           playsInline
           preload="auto"
-          poster="/images/hero_new.jpeg"
           aria-hidden="true"
-          onLoadedMetadata={(e) => e.currentTarget.pause()}
+          // Only pause for desktop scrub; mobile autoplays
+          onLoadedMetadata={(e) => {
+            const isMob = window.innerWidth < 768;
+            const prefersReduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if (!isMob && !prefersReduce) {
+              e.currentTarget.pause();
+            }
+          }}
           className={cn(
-            "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-1000",
             visible ? "opacity-100" : "opacity-0"
           )}
         >
@@ -124,38 +140,51 @@ export function ScrollHero() {
           <source src="/videos/hero.webm" type="video/webm" />
         </video>
 
-        {/* Deep space veil — lighter in the middle for legibility */}
+        {/* Cinema veil: top + bottom vignette, transparent in center */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/25 to-black/80"
+          className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-black/65"
         />
-        {/* Subtle starfield texture */}
-        <div aria-hidden className="texture-dots absolute inset-0 opacity-30" />
+        {/* Radial vignette — darkens edges for depth */}
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)",
+          }}
+        />
 
-        {/* ── Overlay — parallaxes up + fades out on scroll ── */}
+        {/* ── Overlay: parallaxes up + fades on scroll ── */}
         <motion.div
           style={{ y: overlayY, opacity: overlayOpacity }}
           className="container relative flex flex-col items-center px-6 text-center"
         >
-          {/* Kicker pill */}
+          {/* Kicker */}
           <motion.p
-            initial={{ opacity: 0, scale: 0.88 }}
-            animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.88 }}
-            transition={{ duration: 0.7, ease: EASE, delay: 0.25 }}
-            className="mx-auto mb-6 inline-block rounded-full border border-ivory/20 bg-white/5 px-4 py-1.5 text-xs font-semibold tracking-wide text-ivory/85 backdrop-blur-sm sm:text-sm"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: visible ? 1 : 0, scale: visible ? 1 : 0.9 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
+            className="mx-auto mb-7 inline-block rounded-full border border-white/20 bg-white/5 px-5 py-1.5 text-xs font-semibold tracking-[0.18em] text-white/80 backdrop-blur-sm sm:text-sm"
           >
             {HERO.kicker}
           </motion.p>
 
-          {/* Headline — each line slides up from a clip mask */}
-          <h1 className="text-fluid-hero font-black leading-[0.92] text-white drop-shadow-[0_4px_32px_rgba(0,0,0,0.7)]">
+          {/* Headline — masked per-line reveal */}
+          <h1
+            className="font-black leading-[0.88] tracking-tight text-white"
+            style={{
+              fontSize: "clamp(3.5rem, 13vw, 10rem)",
+              textShadow: "0 2px 60px rgba(0,0,0,0.9), 0 8px 40px rgba(0,0,0,0.7)",
+            }}
+          >
             {HERO.titleLines.map((line, i) => (
               <span key={line} className="block overflow-hidden">
                 <motion.span
                   className="block"
-                  initial={{ y: "110%", skewY: 5 }}
-                  animate={{ y: visible ? "0%" : "110%", skewY: visible ? 0 : 5 }}
-                  transition={{ duration: 1.05, ease: EASE, delay: 0.4 + i * 0.14 }}
+                  initial={{ y: "110%", skewY: 4 }}
+                  animate={{ y: visible ? "0%" : "110%", skewY: visible ? 0 : 4 }}
+                  transition={{ duration: 1.1, ease: EASE, delay: 0.38 + i * 0.16 }}
                 >
                   {line}
                 </motion.span>
@@ -165,20 +194,20 @@ export function ScrollHero() {
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 22 }}
-            animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 22 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 0.75 }}
-            className="mx-auto mt-6 max-w-2xl text-base font-light text-ivory/80 sm:text-lg md:text-xl"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 24 }}
+            transition={{ duration: 0.9, ease: EASE, delay: 0.82 }}
+            className="mx-auto mt-7 max-w-xl text-base font-light text-white/70 sm:text-lg md:text-xl"
           >
             {HERO.subtitle}
           </motion.p>
 
           {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 18 }}
-            transition={{ duration: 0.7, ease: EASE, delay: 0.95 }}
-            className="mt-9 flex flex-col flex-wrap items-center justify-center gap-3 sm:flex-row"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 20 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 1.05 }}
+            className="mt-10 flex flex-col flex-wrap items-center justify-center gap-3 sm:flex-row"
           >
             {HERO.ctas.map((cta) => (
               <a
@@ -205,13 +234,13 @@ export function ScrollHero() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: visible ? 1 : 0 }}
-          transition={{ duration: 1, delay: 1.4 }}
-          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-ivory/60"
+          transition={{ duration: 1, delay: 1.5 }}
+          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-white/45"
         >
-          <span className="text-xs tracking-widest">{HERO.scrollCue}</span>
+          <span className="text-[10px] tracking-[0.3em] uppercase">{HERO.scrollCue}</span>
           <motion.span
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            animate={{ y: [0, 9, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
           >
             <ChevronDown className="h-5 w-5" />
           </motion.span>
