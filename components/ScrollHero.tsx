@@ -138,12 +138,12 @@ export function ScrollHero() {
   };
 
   return (
-    // h-[150svh] on mobile (50svh scroll room), h-[300vh] on desktop (200vh scroll room)
+    // h-[200svh] on mobile (100svh scroll room), h-[300vh] on desktop (200vh scroll room)
     <section
       id="home"
       ref={sectionRef}
       aria-label="ברוכים הבאים"
-      className="relative h-[150svh] md:h-[300vh]"
+      className="relative h-[200svh] md:h-[300vh]"
     >
       {/* ── Background: fixed while in-view, falls to absolute bottom after ── */}
       <motion.div
