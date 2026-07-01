@@ -54,6 +54,9 @@ export function ScrollHero() {
   // Background zooms in throughout the full scroll — "flying into space"
   const heroScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.6]);
 
+  // Exit curtain: fades in just before sticky releases, bridging dark hero → ivory sections
+  const exitOpacity = useTransform(scrollYProgress, [0.42, 0.6], [0, 1]);
+
   // Scroll drives the video — every frame update advances currentTime
   useMotionValueEvent(scrollYProgress, "change", (progress) => {
     const video = videoRef.current;
@@ -116,15 +119,17 @@ export function ScrollHero() {
   }, [reduce]);
 
   return (
-    // Tall section — creates the scroll range that powers the video scrub
+    // Tall section — creates the scroll range that powers the video scrub.
+    // bg-black ensures the "dead zone" after sticky exits looks dark, not ivory.
+    // [overflow:clip] clips the zoomed bg layer without breaking sticky.
     <section
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
-      className="relative h-[250vh]"
+      className="relative h-[250vh] bg-[#FBF8F1] [overflow:clip]"
     >
       {/* ── Sticky viewport — stays pinned while parent section scrolls ─── */}
-      <div className="sticky top-0 h-[100svh] [overflow:clip]">
+      <div className="sticky top-0 h-[100svh]">
 
         {/* ── Zooming layer: gradient + video + vignettes ─────────────── */}
         {/* Gradient zooms immediately so the effect works before video loads */}
@@ -263,6 +268,14 @@ export function ScrollHero() {
             <ChevronDown className="h-5 w-5" />
           </motion.span>
         </motion.div>
+
+        {/* Exit curtain — fades hero to ivory just before sticky releases,
+            so the hand-off to the content sections below is seamless */}
+        <motion.div
+          aria-hidden
+          style={{ opacity: exitOpacity, background: "#FBF8F1" }}
+          className="pointer-events-none absolute inset-0 z-20"
+        />
 
       </div>
     </section>
