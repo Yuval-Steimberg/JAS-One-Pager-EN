@@ -16,15 +16,17 @@ import { cn } from "@/lib/utils";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * Cinematic scroll-scrub hero.
+ * Cinematic hero.
  *
- * DESKTOP: section is 300vh; video.currentTime driven by scroll + scale zoom.
- * MOBILE:  section is 100svh; video autoplays so the camera flies through space
- *          without any blank scroll buffer below the viewport.
+ * DESKTOP  — section is 200vh; sticky 100svh div pins for 100vh of scroll.
+ *            Video currentTime is scrubbed by scroll + scale zooms 1→1.4
+ *            creating the "flying into space" feel.
+ * MOBILE   — section is 100svh; video seeks past dark intro, autoplays.
  *
- * iOS Safari requires autoPlay + muted + playsInline to buffer frames;
- * on desktop we call play().then(pause) to unlock buffering, then hand
- * control to the rAF scrub loop.
+ * Two separate visibility states:
+ *   `visible`    — triggers text entrance animations immediately.
+ *   `videoReady` — fades the video in ONLY after it is seeked to a
+ *                  non-black frame, so users never see the t=0 void.
  */
 export function ScrollHero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -32,23 +34,21 @@ export function ScrollHero() {
   const handleNav = useSmoothScroll();
   const reduce = useReducedMotion();
   const [visible, setVisible] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  // Parallax + fade for the text overlay
-  // scrollYProgress 0→0.5 is while the sticky div is pinned (visible);
-  // 0.5→1.0 is while it scrolls off. All effects concentrated in first half.
+  // scrollYProgress 0→0.5 = sticky div pinned; 0.5→1 = scrolling off.
+  // All effects concentrated in the first half (pinned phase).
   const overlayY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-40%"]);
   const overlayOpacity = useTransform(scrollYProgress, [0.12, 0.38], [1, 0]);
-
-  // Scale zooms to 1.4 by the time the sticky div starts unpinning —
-  // gives the cinematic "flying into space" sensation on desktop.
   const videoScale = useTransform(scrollYProgress, [0, 0.5], [1.0, 1.4]);
 
   useEffect(() => {
+    // Text animations fire immediately.
     const raf = requestAnimationFrame(() => setVisible(true));
     const t = setTimeout(() => setVisible(true), 50);
 
@@ -56,26 +56,14 @@ export function ScrollHero() {
     const video = videoRef.current;
 
     if (!container || !video || reduce) {
+      setVideoReady(true);
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
     const mobile = window.matchMedia("(max-width: 767px)").matches;
+    // Skip the first 12 % — space videos typically start with dark void frames.
+    const START_FRAC = 0.12;
 
-    if (mobile) {
-      // Mobile: autoplay the space journey. Section is 100svh so there is
-      // no extra scroll buffer and therefore no blank ivory gap.
-      video.play().catch(() => {});
-      return () => {
-        cancelAnimationFrame(raf);
-        clearTimeout(t);
-        video.pause();
-      };
-    }
-
-    // ── Desktop: scroll-scrub ─────────────────────────────────────────────
-    const START_FRAC = 0.06; // skip the first 6 % — usually dark empty frames
-
-    const pause = () => { try { video.pause(); } catch {} };
     const seekTo = (time: number) => {
       if ("fastSeek" in video) {
         try {
@@ -85,6 +73,44 @@ export function ScrollHero() {
       }
       try { video.currentTime = time; } catch {}
     };
+
+    // Reveal the video once a seek has landed on a real frame.
+    let revealedVideo = false;
+    const revealVideo = () => {
+      if (revealedVideo) return;
+      revealedVideo = true;
+      setVideoReady(true);
+    };
+    // Hard fallback: show whatever we have after 2 s.
+    const revealFallback = setTimeout(revealVideo, 2000);
+
+    if (mobile) {
+      // ── Mobile: seek past dark intro, then autoplay ────────────────────
+      const startPlay = () => {
+        const startT = (video.duration || 0) * START_FRAC;
+        seekTo(startT);
+        video.play().catch(() => {});
+      };
+
+      if (video.readyState >= 1) {
+        startPlay();
+      } else {
+        video.addEventListener("loadedmetadata", startPlay, { once: true });
+      }
+
+      // Show video once it is playing (i.e. past the black void seek).
+      video.addEventListener("playing", revealVideo, { once: true });
+
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(t);
+        clearTimeout(revealFallback);
+        video.pause();
+      };
+    }
+
+    // ── Desktop: scroll-scrub ──────────────────────────────────────────────
+    const pause = () => { try { video.pause(); } catch {} };
 
     const setupScrub = () => {
       pause();
@@ -98,7 +124,7 @@ export function ScrollHero() {
       video.addEventListener("loadedmetadata", setupScrub, { once: true });
     }
 
-    // Unlock buffering (iOS + Chrome Android need a play attempt)
+    // Unlock buffering via a short play → pause round-trip.
     video.play().then(pause).catch(() => {});
 
     let scrubRaf = 0;
@@ -115,7 +141,11 @@ export function ScrollHero() {
     };
 
     let targetTime = computeTarget();
-    const onSeeked = () => { seeking = false; };
+
+    const onSeeked = () => {
+      seeking = false;
+      revealVideo(); // first seeked event = we're on a real frame; show it
+    };
     const onScroll = () => { targetTime = computeTarget(); };
     const onResize = () => { targetTime = computeTarget(); };
     video.addEventListener("seeked", onSeeked);
@@ -136,6 +166,7 @@ export function ScrollHero() {
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
+      clearTimeout(revealFallback);
       cancelAnimationFrame(scrubRaf);
       video.removeEventListener("loadedmetadata", setupScrub);
       video.removeEventListener("seeked", onSeeked);
@@ -152,18 +183,17 @@ export function ScrollHero() {
       style={{ background: "#000" }}
       className={cn(
         "relative [overflow:clip]",
-        // Mobile: 100svh = no blank gap. Desktop: 200vh = 100vh scroll range.
         reduce ? "h-[100svh]" : "h-[100svh] md:h-[200vh]"
       )}
     >
-      {/* Deep-space gradient: cinematic even before the video loads */}
+      {/* Deep-space gradient — always visible, shows while video is loading */}
       <div
         className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center [overflow:clip]"
         style={{ background: "radial-gradient(ellipse at 50% 20%, #0c0524 0%, #040112 50%, #000000 100%)" }}
       >
 
-        {/* ── Space video ── */}
-        {/* Scale grows with scroll (desktop) to create the "flying into space" sensation */}
+        {/* ── Space video ─────────────────────────────────────────────────── */}
+        {/* Wrapped in motion.div so scale() doesn't break the video element */}
         <motion.div
           style={{ scale: videoScale }}
           className="absolute inset-0 h-full w-full"
@@ -177,7 +207,8 @@ export function ScrollHero() {
             aria-hidden="true"
             className={cn(
               "h-full w-full object-cover transition-opacity duration-1000",
-              visible ? "opacity-100" : "opacity-0"
+              // Only fade in AFTER the video is seeked to a non-black frame.
+              videoReady ? "opacity-100" : "opacity-0"
             )}
           >
             <source src="/hero.mp4" type="video/mp4" />
@@ -185,7 +216,7 @@ export function ScrollHero() {
           </video>
         </motion.div>
 
-        {/* Cinema vignette: top+bottom dark, center open for video */}
+        {/* Cinema vignette */}
         <div
           aria-hidden
           className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-black/65"
@@ -249,7 +280,7 @@ export function ScrollHero() {
             {HERO.subtitle}
           </motion.p>
 
-          {/* CTAs — each wrapped in magnetic pull */}
+          {/* CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 20 }}
