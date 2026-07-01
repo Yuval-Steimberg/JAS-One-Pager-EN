@@ -16,17 +16,16 @@ import { cn } from "@/lib/utils";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
- * Cinematic hero.
+ * Cinematic hero — 100svh on all devices, no blank scroll buffer anywhere.
  *
- * DESKTOP  — section is 200vh; sticky 100svh div pins for 100vh of scroll.
- *            Video currentTime is scrubbed by scroll + scale zooms 1→1.4
- *            creating the "flying into space" feel.
- * MOBILE   — section is 100svh; video seeks past dark intro, autoplays.
+ * "Fly-through" feel:
+ *   - Video autoplays (camera moves through space in the video itself)
+ *   - As you scroll the section off-screen, the video scales 1→1.5
+ *     which makes the frame rush toward you — feels like acceleration
+ *   - Text fades + rises early so you get a clear zoom view before exit
  *
- * Two separate visibility states:
- *   `visible`    — triggers text entrance animations immediately.
- *   `videoReady` — fades the video in ONLY after it is seeked to a
- *                  non-black frame, so users never see the t=0 void.
+ * Video is kept opacity-0 until a "playing" event confirms the browser
+ * is past the dark void at t=0.  Fallback reveals after 1.5 s.
  */
 export function ScrollHero() {
   const containerRef = useRef<HTMLElement>(null);
@@ -36,142 +35,56 @@ export function ScrollHero() {
   const [visible, setVisible] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
+  // progress 0 → 1 as this 100svh section scrolls off the viewport.
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
-  // scrollYProgress 0→0.5 = sticky div pinned; 0.5→1 = scrolling off.
-  // All effects concentrated in the first half (pinned phase).
-  const overlayY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-40%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0.12, 0.38], [1, 0]);
-  const videoScale = useTransform(scrollYProgress, [0, 0.5], [1.0, 1.4]);
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.38], [1, 0]);
+  const overlayY      = useTransform(scrollYProgress, [0, 0.55], ["0%", "-28%"]);
+  // Scale zooms toward viewer as section exits — the "fly into space" effect.
+  const videoScale    = useTransform(scrollYProgress, [0, 1], [1.0, 1.55]);
 
   useEffect(() => {
-    // Text animations fire immediately.
+    // Text entrance: fire immediately.
     const raf = requestAnimationFrame(() => setVisible(true));
-    const t = setTimeout(() => setVisible(true), 50);
+    const t   = setTimeout(() => setVisible(true), 50);
 
-    const container = containerRef.current;
     const video = videoRef.current;
-
-    if (!container || !video || reduce) {
+    if (!video || reduce) {
       setVideoReady(true);
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
-    const mobile = window.matchMedia("(max-width: 767px)").matches;
-    // Skip the first 12 % — space videos typically start with dark void frames.
-    const START_FRAC = 0.12;
+    // Skip the dark void at the start of the space video.
+    const START_FRAC = 0.1;
 
-    const seekTo = (time: number) => {
-      if ("fastSeek" in video) {
-        try {
-          (video as HTMLVideoElement & { fastSeek(t: number): void }).fastSeek(time);
-          return;
-        } catch {}
-      }
-      try { video.currentTime = time; } catch {}
-    };
-
-    // Reveal the video once a seek has landed on a real frame.
-    let revealedVideo = false;
-    const revealVideo = () => {
-      if (revealedVideo) return;
-      revealedVideo = true;
-      setVideoReady(true);
-    };
-    // Hard fallback: show whatever we have after 2 s.
-    const revealFallback = setTimeout(revealVideo, 2000);
-
-    if (mobile) {
-      // ── Mobile: seek past dark intro, then autoplay ────────────────────
-      const startPlay = () => {
-        const startT = (video.duration || 0) * START_FRAC;
-        seekTo(startT);
-        video.play().catch(() => {});
-      };
-
-      if (video.readyState >= 1) {
-        startPlay();
-      } else {
-        video.addEventListener("loadedmetadata", startPlay, { once: true });
-      }
-
-      // Show video once it is playing (i.e. past the black void seek).
-      video.addEventListener("playing", revealVideo, { once: true });
-
-      return () => {
-        cancelAnimationFrame(raf);
-        clearTimeout(t);
-        clearTimeout(revealFallback);
-        video.pause();
-      };
-    }
-
-    // ── Desktop: scroll-scrub ──────────────────────────────────────────────
-    const pause = () => { try { video.pause(); } catch {} };
-
-    const setupScrub = () => {
-      pause();
+    const startPlayback = () => {
       const startT = (video.duration || 0) * START_FRAC;
-      seekTo(startT);
+      try { video.currentTime = startT; } catch {}
+      video.play().catch(() => {});
     };
 
     if (video.readyState >= 1) {
-      setupScrub();
+      startPlayback();
     } else {
-      video.addEventListener("loadedmetadata", setupScrub, { once: true });
+      video.addEventListener("loadedmetadata", startPlayback, { once: true });
     }
 
-    // Unlock buffering via a short play → pause round-trip.
-    video.play().then(pause).catch(() => {});
-
-    let scrubRaf = 0;
-    let displayed = (video.duration || 0) * START_FRAC;
-    let seeking = false;
-    const SMOOTHING = 0.15;
-
-    const computeTarget = () => {
-      const rect = container.getBoundingClientRect();
-      const scrollable = rect.height - window.innerHeight;
-      const progress =
-        scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
-      return (START_FRAC + progress * (1 - START_FRAC)) * (video.duration || 0);
-    };
-
-    let targetTime = computeTarget();
-
-    const onSeeked = () => {
-      seeking = false;
-      revealVideo(); // first seeked event = we're on a real frame; show it
-    };
-    const onScroll = () => { targetTime = computeTarget(); };
-    const onResize = () => { targetTime = computeTarget(); };
-    video.addEventListener("seeked", onSeeked);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-
-    const tick = () => {
-      scrubRaf = requestAnimationFrame(tick);
-      if (!video.duration) return;
-      displayed += (targetTime - displayed) * SMOOTHING;
-      if (!seeking && Math.abs(displayed - video.currentTime) > 1 / 30) {
-        seeking = true;
-        seekTo(displayed);
-      }
-    };
-    scrubRaf = requestAnimationFrame(tick);
+    // Reveal once the browser confirms playback has started (past t=0 black void).
+    const revealVideo = () => setVideoReady(true);
+    video.addEventListener("playing", revealVideo, { once: true });
+    // Hard fallback — show whatever frame is loaded after 1.5 s.
+    const fallback = setTimeout(revealVideo, 1500);
 
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
-      clearTimeout(revealFallback);
-      cancelAnimationFrame(scrubRaf);
-      video.removeEventListener("loadedmetadata", setupScrub);
-      video.removeEventListener("seeked", onSeeked);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
+      clearTimeout(fallback);
+      video.removeEventListener("loadedmetadata", startPlayback);
+      video.removeEventListener("playing", revealVideo);
+      video.pause();
     };
   }, [reduce]);
 
@@ -180,20 +93,15 @@ export function ScrollHero() {
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
-      style={{ background: "#000" }}
-      className={cn(
-        "relative [overflow:clip]",
-        reduce ? "h-[100svh]" : "h-[100svh] md:h-[200vh]"
-      )}
+      className="relative h-[100svh] [overflow:clip]"
     >
-      {/* Deep-space gradient — always visible, shows while video is loading */}
+      {/* Deep-space gradient — visible while video loads */}
       <div
-        className="on-dark sticky top-0 flex h-[100svh] w-full items-center justify-center [overflow:clip]"
+        className="on-dark absolute inset-0 flex items-center justify-center [overflow:clip]"
         style={{ background: "radial-gradient(ellipse at 50% 20%, #0c0524 0%, #040112 50%, #000000 100%)" }}
       >
 
-        {/* ── Space video ─────────────────────────────────────────────────── */}
-        {/* Wrapped in motion.div so scale() doesn't break the video element */}
+        {/* ── Space video — scales up as section scrolls off ── */}
         <motion.div
           style={{ scale: videoScale }}
           className="absolute inset-0 h-full w-full"
@@ -207,7 +115,6 @@ export function ScrollHero() {
             aria-hidden="true"
             className={cn(
               "h-full w-full object-cover transition-opacity duration-1000",
-              // Only fade in AFTER the video is seeked to a non-black frame.
               videoReady ? "opacity-100" : "opacity-0"
             )}
           >
@@ -233,7 +140,7 @@ export function ScrollHero() {
         {/* Animated film grain overlay */}
         <div aria-hidden className="grain-overlay absolute inset-0 opacity-[0.18] mix-blend-overlay" />
 
-        {/* ── Content — parallaxes up + fades out as user scrolls ── */}
+        {/* ── Content — fades + rises as user scrolls ── */}
         <motion.div
           style={{ y: overlayY, opacity: overlayOpacity }}
           className="container relative flex flex-col items-center px-6 text-center"
