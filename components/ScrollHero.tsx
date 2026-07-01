@@ -14,40 +14,46 @@ import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { cn } from "@/lib/utils";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+const START_FRAC = 0.1; // skip first 10 % — usually dark void frames
 
 /**
- * Cinematic hero — 100svh on all devices, no blank scroll buffer anywhere.
+ * Cinematic hero.
  *
- * "Fly-through" feel:
- *   - Video autoplays (camera moves through space in the video itself)
- *   - As you scroll the section off-screen, the video scales 1→1.5
- *     which makes the frame rush toward you — feels like acceleration
- *   - Text fades + rises early so you get a clear zoom view before exit
+ * The ENTIRE background layer (gradient + video + vignettes) scales up
+ * together as the section scrolls off, so the zoom effect is immediate
+ * even while the video is still loading — the gradient itself flies toward
+ * the viewer.
  *
- * Video is kept opacity-0 until a "playing" event confirms the browser
- * is past the dark void at t=0.  Fallback reveals after 1.5 s.
+ * Video reveal strategy — iOS-safe:
+ *   1. autoPlay + muted + playsInline starts buffering
+ *   2. `timeupdate` fires only when currentTime ACTUALLY changes
+ *      (iOS `playing` fires at t=0, but timeupdate confirms motion)
+ *   3. Once currentTime > 0 we seek past the dark intro, then reveal
+ *   4. Hard 3 s fallback so it always shows something
  */
 export function ScrollHero() {
   const containerRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const handleNav = useSmoothScroll();
-  const reduce = useReducedMotion();
-  const [visible, setVisible] = useState(false);
+  const videoRef     = useRef<HTMLVideoElement>(null);
+  const handleNav    = useSmoothScroll();
+  const reduce       = useReducedMotion();
+  const [visible,    setVisible]    = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
-  // progress 0 → 1 as this 100svh section scrolls off the viewport.
+  // 0 = section fills viewport, 1 = section completely scrolled off
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
   });
 
+  // Text overlay: fades + rises as section exits
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.38], [1, 0]);
-  const overlayY      = useTransform(scrollYProgress, [0, 0.55], ["0%", "-28%"]);
-  // Scale zooms toward viewer as section exits — the "fly into space" effect.
-  const videoScale    = useTransform(scrollYProgress, [0, 1], [1.0, 1.55]);
+  const overlayY       = useTransform(scrollYProgress, [0, 0.55], ["0%", "-28%"]);
+
+  // The WHOLE background zooms in as you scroll — works even before video loads
+  const heroScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.55]);
 
   useEffect(() => {
-    // Text entrance: fire immediately.
+    // Text entrance: trigger immediately
     const raf = requestAnimationFrame(() => setVisible(true));
     const t   = setTimeout(() => setVisible(true), 50);
 
@@ -57,33 +63,45 @@ export function ScrollHero() {
       return () => { cancelAnimationFrame(raf); clearTimeout(t); };
     }
 
-    // Skip the dark void at the start of the space video.
-    const START_FRAC = 0.1;
+    let revealed    = false;
+    let seekedOnce  = false;
 
-    const startPlayback = () => {
-      const startT = (video.duration || 0) * START_FRAC;
-      try { video.currentTime = startT; } catch {}
-      video.play().catch(() => {});
+    const revealVideo = () => {
+      if (revealed) return;
+      revealed = true;
+      setVideoReady(true);
     };
 
-    if (video.readyState >= 1) {
-      startPlayback();
-    } else {
-      video.addEventListener("loadedmetadata", startPlayback, { once: true });
-    }
+    // timeupdate fires every time currentTime advances — confirms real playback.
+    // Only then do we seek past dark frames and reveal the video.
+    const onTimeUpdate = () => {
+      if (seekedOnce || video.currentTime <= 0 || !video.duration) return;
+      seekedOnce = true;
+      video.removeEventListener("timeupdate", onTimeUpdate);
 
-    // Reveal once the browser confirms playback has started (past t=0 black void).
-    const revealVideo = () => setVideoReady(true);
-    video.addEventListener("playing", revealVideo, { once: true });
-    // Hard fallback — show whatever frame is loaded after 1.5 s.
-    const fallback = setTimeout(revealVideo, 1500);
+      const startT = video.duration * START_FRAC;
+      if (video.currentTime >= startT) {
+        revealVideo();
+      } else {
+        try { video.currentTime = startT; } catch {}
+        video.addEventListener("seeked", revealVideo, { once: true });
+        setTimeout(revealVideo, 800); // fallback if seeked never fires
+      }
+    };
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+
+    // Nudge autoplay (some browsers need an explicit call even with attribute)
+    video.play().catch(() => {});
+
+    // Final hard fallback — always reveal after 3 s
+    const fallback = setTimeout(revealVideo, 3000);
 
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
       clearTimeout(fallback);
-      video.removeEventListener("loadedmetadata", startPlayback);
-      video.removeEventListener("playing", revealVideo);
+      video.removeEventListener("timeupdate", onTimeUpdate);
       video.pause();
     };
   }, [reduce]);
@@ -95,33 +113,32 @@ export function ScrollHero() {
       aria-label="ברוכים הבאים"
       className="relative h-[100svh] [overflow:clip]"
     >
-      {/* Deep-space gradient — visible while video loads */}
-      <div
-        className="on-dark absolute inset-0 flex items-center justify-center [overflow:clip]"
-        style={{ background: "radial-gradient(ellipse at 50% 20%, #0c0524 0%, #040112 50%, #000000 100%)" }}
+      {/* ── Zooming layer: gradient + video + vignettes ─────────────────── */}
+      {/* scale() applied here so the deep-space effect works even while    */}
+      {/* the video is still loading — the gradient itself zooms in.        */}
+      <motion.div
+        style={{
+          scale: heroScale,
+          background:
+            "radial-gradient(ellipse at 50% 20%, #0c0524 0%, #040112 50%, #000000 100%)",
+        }}
+        className="absolute inset-0 [overflow:clip]"
       >
-
-        {/* ── Space video — scales up as section scrolls off ── */}
-        <motion.div
-          style={{ scale: videoScale }}
-          className="absolute inset-0 h-full w-full"
+        <video
+          ref={videoRef}
+          muted
+          playsInline
+          autoPlay
+          preload="auto"
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover transition-opacity duration-700",
+            videoReady ? "opacity-100" : "opacity-0"
+          )}
         >
-          <video
-            ref={videoRef}
-            muted
-            playsInline
-            autoPlay
-            preload="auto"
-            aria-hidden="true"
-            className={cn(
-              "h-full w-full object-cover transition-opacity duration-1000",
-              videoReady ? "opacity-100" : "opacity-0"
-            )}
-          >
-            <source src="/hero.mp4" type="video/mp4" />
-            <source src="/videos/hero.webm" type="video/webm" />
-          </video>
-        </motion.div>
+          <source src="/hero.mp4"          type="video/mp4" />
+          <source src="/videos/hero.webm"  type="video/webm" />
+        </video>
 
         {/* Cinema vignette */}
         <div
@@ -137,10 +154,13 @@ export function ScrollHero() {
               "radial-gradient(ellipse 85% 85% at 50% 50%, transparent 38%, rgba(0,0,0,0.6) 100%)",
           }}
         />
-        {/* Animated film grain overlay */}
+        {/* Animated film grain */}
         <div aria-hidden className="grain-overlay absolute inset-0 opacity-[0.18] mix-blend-overlay" />
+      </motion.div>
 
-        {/* ── Content — fades + rises as user scrolls ── */}
+      {/* ── Content overlay — NOT inside the zoom layer ──────────────────── */}
+      {/* Text stays crisp and centered regardless of the zoom level.        */}
+      <div className="on-dark absolute inset-0 flex items-center justify-center">
         <motion.div
           style={{ y: overlayY, opacity: overlayOpacity }}
           className="container relative flex flex-col items-center px-6 text-center"
@@ -215,23 +235,23 @@ export function ScrollHero() {
             ))}
           </motion.div>
         </motion.div>
-
-        {/* Scroll cue */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: visible ? 1 : 0 }}
-          transition={{ duration: 1, delay: 1.6 }}
-          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-white/45"
-        >
-          <span className="text-[10px] tracking-[0.3em] uppercase">{HERO.scrollCue}</span>
-          <motion.span
-            animate={{ y: [0, 9, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <ChevronDown className="h-5 w-5" />
-          </motion.span>
-        </motion.div>
       </div>
+
+      {/* Scroll cue — outside zoom layer so it doesn't scale */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: visible ? 1 : 0 }}
+        transition={{ duration: 1, delay: 1.6 }}
+        className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-white/45"
+      >
+        <span className="text-[10px] tracking-[0.3em] uppercase">{HERO.scrollCue}</span>
+        <motion.span
+          animate={{ y: [0, 9, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <ChevronDown className="h-5 w-5" />
+        </motion.span>
+      </motion.div>
     </section>
   );
 }
