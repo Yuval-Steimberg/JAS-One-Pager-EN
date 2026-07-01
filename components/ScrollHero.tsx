@@ -39,11 +39,14 @@ export function ScrollHero() {
   });
 
   // Parallax + fade for the text overlay
-  const overlayY = useTransform(scrollYProgress, [0, 0.7], ["0%", "-30%"]);
-  const overlayOpacity = useTransform(scrollYProgress, [0.45, 0.72], [1, 0]);
+  // scrollYProgress 0→0.5 is while the sticky div is pinned (visible);
+  // 0.5→1.0 is while it scrolls off. All effects concentrated in first half.
+  const overlayY = useTransform(scrollYProgress, [0, 0.5], ["0%", "-40%"]);
+  const overlayOpacity = useTransform(scrollYProgress, [0.12, 0.38], [1, 0]);
 
-  // Scale the video up as you scroll — "flying into" the space
-  const videoScale = useTransform(scrollYProgress, [0, 1], [1.0, 1.18]);
+  // Scale zooms to 1.4 by the time the sticky div starts unpinning —
+  // gives the cinematic "flying into space" sensation on desktop.
+  const videoScale = useTransform(scrollYProgress, [0, 0.5], [1.0, 1.4]);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
@@ -146,10 +149,11 @@ export function ScrollHero() {
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
+      style={{ background: "#000" }}
       className={cn(
         "relative [overflow:clip]",
-        // Mobile: 100svh = no blank gap. Desktop: 300vh for scroll range.
-        reduce ? "h-[100svh]" : "h-[100svh] md:h-[300vh]"
+        // Mobile: 100svh = no blank gap. Desktop: 200vh = 100vh scroll range.
+        reduce ? "h-[100svh]" : "h-[100svh] md:h-[200vh]"
       )}
     >
       {/* Deep-space gradient: cinematic even before the video loads */}
