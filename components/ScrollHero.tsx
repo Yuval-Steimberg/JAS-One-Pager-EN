@@ -120,16 +120,17 @@ export function ScrollHero() {
 
   return (
     // Tall section — creates the scroll range that powers the video scrub.
-    // bg-black ensures the "dead zone" after sticky exits looks dark, not ivory.
-    // [overflow:clip] clips the zoomed bg layer without breaking sticky.
+    // NO overflow on the section — overflow:clip on a parent breaks position:sticky.
+    // The clip lives on the sticky child instead, which is safe.
     <section
       id="home"
       ref={containerRef}
       aria-label="ברוכים הבאים"
-      className="relative h-[250vh] bg-[#FBF8F1] [overflow:clip]"
+      className="relative h-[250vh] bg-[#FBF8F1]"
     >
       {/* ── Sticky viewport — stays pinned while parent section scrolls ─── */}
-      <div className="sticky top-0 h-[100svh]">
+      {/* [overflow:clip] here clips the scaled bg without breaking sticky  */}
+      <div className="sticky top-0 h-[100svh] [overflow:clip]">
 
         {/* ── Zooming layer: gradient + video + vignettes ─────────────── */}
         {/* Gradient zooms immediately so the effect works before video loads */}
